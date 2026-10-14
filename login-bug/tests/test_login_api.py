@@ -14,6 +14,8 @@ def login(username, password):
     [
         ("demo@example.com", "Password123!", "Demo User"),
         ("alice@example.com", "Wonderland42", "Alice"),
+        # The lookup normalizes the username, so case and padding must not matter.
+        (" Demo@Example.com ", "Password123!", "Demo User"),
     ],
 )
 def test_login_succeeds_with_valid_credentials(username, password, display_name):
@@ -38,8 +40,16 @@ def test_login_rejects_unknown_user():
     assert response.json() == {"ok": False, "message": "Invalid username or password."}
 
 
-def test_login_requires_username_and_password():
-    response = login("", "")
+@pytest.mark.parametrize(
+    ("username", "password"),
+    [
+        ("", ""),
+        ("demo@example.com", ""),
+        ("", "Password123!"),
+    ],
+)
+def test_login_requires_username_and_password(username, password):
+    response = login(username, password)
 
     assert response.status_code == 400
     assert response.json() == {
@@ -52,6 +62,13 @@ def test_login_rejects_invalid_json():
     response = client.post(
         "/api/login", content="not json", headers={"Content-Type": "application/json"}
     )
+
+    assert response.status_code == 400
+    assert response.json() == {"ok": False, "message": "Invalid JSON body."}
+
+
+def test_login_rejects_json_that_is_not_an_object():
+    response = client.post("/api/login", json=[])
 
     assert response.status_code == 400
     assert response.json() == {"ok": False, "message": "Invalid JSON body."}

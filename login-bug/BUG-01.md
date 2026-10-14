@@ -6,10 +6,10 @@
 | **Component** | Authentication (`POST /api/login`) |
 | **Severity** | Critical: no user can sign in |
 | **Priority** | High |
-| **Status** | Open, reproduced |
+| **Status** | Fixed |
 | **Reported by** | Tri Huynh |
 | **Date reported** | 2026-10-14 |
-| **Assigned to** | _Unassigned_ |
+| **Assigned to** | Tri Huynh |
 
 ## Description
 
@@ -76,4 +76,10 @@ When a registered user submits the correct email and password:
 - The browser and `curl` give the same 401, so the problem is on the server, not in the form (`public/app.js`).
 - Unknown users and wrong passwords are rejected correctly (scenarios 4–5). Only correct passwords behave wrongly, which points to the password check rather than the user lookup.
 - Suspected area: password hashing and checking in `src/auth.py`. The hash made when users are created (`hash_password`) may not match the hash made at login (`verify_password`).
-- Not fixed here.
+
+## Root cause and fix
+
+- **Root cause:** `hash_password` hashed `"{username}:{password}"` when users were created, but `verify_password` rebuilt the hash from `"{password}:{username}"`. The two hashes never matched, so every correct password was rejected.
+- **Fix (commit `6ab5c6f`):** `verify_password` calls `hash_password` instead of hashing the input itself, so storage and login always use the same format.
+- **Follow-up hardening (from PR review):** passwords are now hashed with scrypt and a random per-user salt, and hashes are compared in constant time with `hmac.compare_digest`.
+- **Regression tests:** `tests/test_auth.py` and `tests/test_login_api.py` (`uv run pytest`).
