@@ -1,0 +1,9 @@
+[project]
+name = "bug-reproduction-login"
+version = "1.0.0"
+description = "Training exercise: a minimal login app with one intentional, reproducible bug."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+]
