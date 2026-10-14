@@ -8,5 +8,5 @@ def hash_password(username, password):
 
 def verify_password(user, password):
     """Returns True when the given password matches the stored hash."""
-    candidate = hashlib.sha256(f"{password}:{user['username']}".encode("utf-8")).hexdigest()
+    candidate = hash_password(user["username"], password)
     return candidate == user["password_hash"]
