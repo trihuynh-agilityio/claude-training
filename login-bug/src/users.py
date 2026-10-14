@@ -5,12 +5,12 @@ USERS = [
     {
         "username": "demo@example.com",
         "display_name": "Demo User",
-        "password_hash": hash_password("demo@example.com", "Password123!"),
+        "password_hash": hash_password("Password123!"),
     },
     {
         "username": "alice@example.com",
         "display_name": "Alice",
-        "password_hash": hash_password("alice@example.com", "Wonderland42"),
+        "password_hash": hash_password("Wonderland42"),
     },
 ]
 

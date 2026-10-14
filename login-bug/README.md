@@ -1,6 +1,6 @@
 # Bug Reproduction Exercise: Login Rejects Valid Credentials
 
-A small web app with a sign-in form, built with Python and [FastAPI](https://fastapi.tiangolo.com/). It contains **one intentional bug**: signing in with valid credentials fails with "Invalid username or password."
+A small web app with a sign-in form, built with Python and [FastAPI](https://fastapi.tiangolo.com/). It originally contained **one intentional bug**: signing in with valid credentials failed with "Invalid username or password." The bug is documented in [`BUG-01.md`](BUG-01.md) and has since been fixed.
 
 Your job in this exercise is to **reproduce** the bug and write down what you see in [`BUG-01.md`](BUG-01.md). Don't fix it yet. Fixing comes later in the program.
 
@@ -70,11 +70,21 @@ curl -i -X POST http://localhost:3000/api/login \
 
 The server logs every login attempt in the terminal where `uv run app.py` is running.
 
+## Run tests
+
+From inside `login-bug/`:
+
+```bash
+uv run pytest
+```
+
+`uv sync` installs the test dependencies (pytest, httpx2) along with the app's.
+
 ## Project layout
 
 ```
 login-bug/
-├── BUG-01.md          Bug report to fill in
+├── BUG-01.md          Bug report and fix notes
 ├── README.md          This file
 ├── pyproject.toml     Project settings and dependencies (FastAPI, Uvicorn)
 ├── uv.lock            Exact dependency versions, managed by uv
@@ -84,6 +94,9 @@ login-bug/
 │   ├── __init__.py
 │   ├── auth.py        Password hashing and checking
 │   └── users.py       In-memory user store
+├── tests/
+│   ├── test_auth.py       Unit tests for password hashing and checking
+│   └── test_login_api.py  API tests for POST /api/login
 └── public/
     ├── index.html     Sign-in page
     ├── app.js         Form submit logic (runs in the browser)
