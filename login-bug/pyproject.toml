@@ -1,5 +1,5 @@
 [project]
-name = "bug-reproduction-login"
+name = "login-bug"
 version = "1.0.0"
 description = "Training exercise: a minimal login app with one intentional, reproducible bug."
 requires-python = ">=3.10"

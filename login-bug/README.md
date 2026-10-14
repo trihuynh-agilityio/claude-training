@@ -15,15 +15,15 @@ uv installs a suitable Python (3.10 or newer) for you if you don't already have 
 From the repository root:
 
 ```bash
-cd bug-reproduction
+cd login-bug
 uv sync
 ```
 
-This creates a `.venv/` folder inside `bug-reproduction/` and installs the dependencies into it. You only need to do this once. The `.venv/` folder is ignored by Git.
+This creates a `.venv/` folder inside `login-bug/` and installs the dependencies into it. You only need to do this once. The `.venv/` folder is ignored by Git.
 
 ## Run
 
-From inside `bug-reproduction/`:
+From inside `login-bug/`:
 
 ```bash
 uv run app.py
@@ -73,7 +73,7 @@ The server logs every login attempt in the terminal where `uv run app.py` is run
 ## Project layout
 
 ```
-bug-reproduction/
+login-bug/
 ├── BUG-01.md          Bug report to fill in
 ├── README.md          This file
 ├── pyproject.toml     Project settings and dependencies (FastAPI, Uvicorn)

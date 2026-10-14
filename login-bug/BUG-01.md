@@ -47,7 +47,7 @@ When a registered user submits the correct email and password:
 
 **Preconditions:** dependencies installed with `uv sync` (see `README.md`).
 
-1. In a terminal, go to the `bug-reproduction/` folder and run `uv run app.py`.
+1. In a terminal, go to the `login-bug/` folder and run `uv run app.py`.
 2. Wait for the terminal to show `Login app running at http://localhost:3000`.
 3. In Chrome, open <http://localhost:3000>.
 4. In **Email**, enter `demo@example.com`.
