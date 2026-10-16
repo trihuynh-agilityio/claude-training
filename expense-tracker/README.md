@@ -12,9 +12,53 @@ A simple personal expense tracker for recording daily expenses and understanding
 - **Monthly summaries:** view total spending per month, broken down by category
 - **Budgets:** set a monthly budget and track spending against it
 
-## Planned Tech Stack
+## Tech Stack
 
-Not decided yet. We'll choose the stack together before writing any code.
+- **Frontend:** React 19 + TypeScript + Vite 8, linted with oxlint (`frontend/`)
+- **Backend:** Python 3.13 + FastAPI, managed with uv, tested with pytest (`backend/`)
+- **Storage:** not chosen yet; to be decided in Phase 1
+
+In development, the Vite dev server proxies `/api` requests to the backend on port 8000.
+
+## Project Structure
+
+```
+expense-tracker/
+├── frontend/          React + TypeScript app (Vite)
+│   └── src/           App entry point and components
+└── backend/           FastAPI app (uv)
+    ├── app/main.py    API entry point, including GET /api/health
+    └── tests/         pytest tests
+```
+
+## Getting Started
+
+Prerequisites: Node.js 20.19+ or 22.12+, and [uv](https://docs.astral.sh/uv/).
+
+Start the backend (http://localhost:8000, API docs at `/docs`):
+
+```bash
+cd backend
+uv sync
+uv run fastapi dev app/main.py
+```
+
+Start the frontend in a second terminal (http://localhost:5173):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The page should show **API status: ok** when both are running.
+
+Run checks:
+
+```bash
+cd backend && uv run pytest
+cd frontend && npm run lint && npm run build
+```
 
 ## Development Roadmap
 
