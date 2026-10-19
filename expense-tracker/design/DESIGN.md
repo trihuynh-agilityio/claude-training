@@ -80,8 +80,8 @@ Give every amount `font-variant-numeric: tabular-nums`.
   Use `new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })`.
 - Expenses display as plain positive amounts. Don't use a minus sign or red for normal spending.
 - Remaining and over amounts read as `1.320.000 ₫ left` (status text color) or `340.000 ₫ over` (over color).
-- Dates in lists use `Thu 16 Oct`. The last two days show as `Today · Thu 16 Oct` and `Yesterday · Wed 15 Oct`.
-  Page headers use `Thursday, 16 October 2026`. Date inputs use the native picker.
+- Dates in lists use `Fri 16 Oct`. The last two days show as `Today · Fri 16 Oct` and `Yesterday · Thu 15 Oct`.
+  Page headers use `Friday, 16 October 2026`. Date inputs use the native picker.
 
 ## 4. Layout and responsiveness
 
@@ -106,7 +106,7 @@ Give every amount `font-variant-numeric: tabular-nums`.
 | `StatusBadge` | Pill: On track, Near limit or Over budget. |
 | `ProgressBar` | 8–14px track `#EDEDE8` with the fill in the status color, capped at 100%. Optional black "today" tick at day ÷ days-in-month. Uses `role="progressbar"`. |
 | `TransactionRow` | Tile, note (ellipsis), category, and amount on the right. Desktop adds edit and delete icon buttons. On mobile the whole row is a link to Edit. |
-| `DayGroupHeader` | `Today · Thu 16 Oct` with the daily subtotal on the right, on a `#FAFAF7` band. |
+| `DayGroupHeader` | `Today · Fri 16 Oct` with the daily subtotal on the right, on a `#FAFAF7` band. |
 | `ConfirmDialog` | `role="alertdialog"`. Shows the expense summary (tile, note, category, date, amount). Cancel has default focus; the danger button is labelled "Delete expense". Becomes a bottom sheet on mobile. |
 | `Toast` | Dark pill at bottom center, `role="status"`, disappears after 3.5 s. |
 | `EmptyState` | Icon tile, title, one sentence and one action. |
