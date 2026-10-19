@@ -84,8 +84,8 @@ cd frontend && npm run lint && npm test && npm run build
 Each phase should be small, usable on its own, and build on the one before.
 
 1. **Phase 1: Basic expense tracking (MVP).** Add, view, edit, and delete expenses (amount, date, description). Data persists between sessions.
-2. **Phase 2: Categories.** Assign a category to each expense and manage the list of categories.
-3. **Phase 3: Filtering.** Filter the expense list by date range and category.
+2. **Phase 2: Categories.** Assign a category to each expense and manage the list of categories. Search and date-range filtering moved into this phase from Phase 3.
+3. **Phase 3: Filtering.** Filter the expense list by category (the category chips). Search and date range already shipped in Phase 2.
 4. **Phase 4: Monthly summaries.** Show monthly totals and a per-category breakdown.
 5. **Phase 5: Budgets.** Set monthly budgets and show remaining or overspent amounts.
 

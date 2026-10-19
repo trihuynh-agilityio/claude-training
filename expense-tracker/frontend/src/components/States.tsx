@@ -16,6 +16,21 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
   )
 }
 
+export function NoMatchState({ onClear }: { onClear: () => void }) {
+  return (
+    <section className="card state">
+      <span className="state-icon">
+        <WalletIcon />
+      </span>
+      <h2 className="state-title">No expenses match</h2>
+      <p className="state-text">Try a different search or date range, or clear the filters to see everything.</p>
+      <button className="btn btn-secondary" type="button" onClick={onClear}>
+        Clear filters
+      </button>
+    </section>
+  )
+}
+
 export function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <section className="card state" role="alert">
