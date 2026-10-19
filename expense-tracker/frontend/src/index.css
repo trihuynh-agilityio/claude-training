@@ -780,6 +780,44 @@ input {
   }
 }
 
+/* Filters */
+.filter-card {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.filter-search {
+  flex: 2 1 260px;
+}
+
+.filter-range,
+.filter-date {
+  flex: 1 1 180px;
+}
+
+.filter-error {
+  flex-basis: 100%;
+  margin-top: -8px;
+}
+
+.input select {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
 /* Categories */
 
 .tile.category-tile {
