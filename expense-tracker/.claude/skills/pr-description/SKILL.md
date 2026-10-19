@@ -1,6 +1,8 @@
 ---
 name: pr-description
 description: Use when writing or updating a pull request or GitLab merge request description for the Personal Expense Tracker, or when asked to summarize a branch for review.
+model: sonnet
+allowed-tools: Bash(git log *) Bash(git diff *) Bash(git status *) Read Grep Glob
 ---
 
 # PR description
