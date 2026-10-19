@@ -1,8 +1,10 @@
 import { useRef } from 'react'
+import { getCategory } from '../lib/categories'
 import { formatShortDate } from '../lib/dates'
 import { formatVND } from '../lib/money'
 import type { Expense } from '../types'
-import { AlertIcon, ReceiptIcon, TrashIcon } from './icons'
+import { CategoryTile } from './CategoryTile'
+import { AlertIcon, TrashIcon } from './icons'
 import { useModalDialog } from './useModalDialog'
 
 type Props = {
@@ -43,12 +45,12 @@ export function ConfirmDeleteDialog({ expense, busy, error, onConfirm, onCancel 
           </p>
         </div>
         <div className="confirm-summary">
-          <span className="tile">
-            <ReceiptIcon size={18} />
-          </span>
+          <CategoryTile categoryId={expense.category_id} size={36} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 500 }}>{expense.note ?? 'No note'}</div>
-            <div className="confirm-meta">{formatShortDate(expense.date)}</div>
+            <div className="confirm-meta">
+              {getCategory(expense.category_id).name} · {formatShortDate(expense.date)}
+            </div>
           </div>
           <span className="num" style={{ fontWeight: 600 }}>
             {formatVND(expense.amount)}

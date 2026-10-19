@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { toExpenseInput, validateExpense, type ExpenseDraft } from './validation'
 
 const TODAY = '2026-10-16'
-const valid: ExpenseDraft = { amount: '65000', date: TODAY, note: 'Phở bò' }
+const valid: ExpenseDraft = { amount: '65000', category: 'food', date: TODAY, note: 'Phở bò' }
 const check = (overrides: Partial<ExpenseDraft>) => validateExpense({ ...valid, ...overrides }, TODAY)
 
 describe('validateExpense', () => {
@@ -30,6 +30,12 @@ describe('validateExpense', () => {
     )
   })
 
+  it('requires one of the known categories', () => {
+    expect(check({ category: '' }).category).toBe('Choose a category.')
+    expect(check({ category: 'coffee' }).category).toBe('Choose a category.')
+    expect(check({ category: 'other' }).category).toBeUndefined()
+  })
+
   it('requires a date that is not in the future', () => {
     expect(check({ date: '' }).date).toBe('Pick a date.')
     expect(check({ date: '2026-10-17' }).date).toBe('Date can’t be in the future.')
@@ -42,23 +48,23 @@ describe('validateExpense', () => {
   })
 
   it('reports every invalid field at once', () => {
-    expect(Object.keys(validateExpense({ amount: '', date: '2026-10-18', note: '' }, TODAY))).toEqual([
-      'amount',
-      'date',
-    ])
+    expect(
+      Object.keys(validateExpense({ amount: '', category: '', date: '2026-10-18', note: '' }, TODAY)),
+    ).toEqual(['amount', 'category', 'date'])
   })
 })
 
 describe('toExpenseInput', () => {
-  it('converts the amount and trims the note', () => {
-    expect(toExpenseInput({ amount: '65000', date: TODAY, note: '  Phở bò  ' })).toEqual({
+  it('converts the amount, maps the category and trims the note', () => {
+    expect(toExpenseInput({ amount: '65000', category: 'food', date: TODAY, note: '  Phở bò  ' })).toEqual({
       amount: 65000,
+      category_id: 'food',
       date: TODAY,
       note: 'Phở bò',
     })
   })
 
   it('sends a blank note as null', () => {
-    expect(toExpenseInput({ amount: '1', date: TODAY, note: '   ' }).note).toBeNull()
+    expect(toExpenseInput({ amount: '1', category: 'other', date: TODAY, note: '   ' }).note).toBeNull()
   })
 })

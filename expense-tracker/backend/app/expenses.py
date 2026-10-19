@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
 Connection = Annotated[sqlite3.Connection, Depends(get_connection)]
 
-COLUMNS = "id, amount, date, note, created_at"
+COLUMNS = "id, amount, category_id, date, note, created_at"
 
 
 def fetch_expense(conn: sqlite3.Connection, expense_id: int) -> Expense:
@@ -34,9 +34,11 @@ def list_expenses(conn: Connection) -> list[Expense]:
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_expense(payload: ExpenseIn, conn: Connection) -> Expense:
     cursor = conn.execute(
-        "INSERT INTO expenses (amount, date, note, created_at) VALUES (?, ?, ?, ?)",
+        "INSERT INTO expenses (amount, category_id, date, note, created_at)"
+        " VALUES (?, ?, ?, ?, ?)",
         (
             payload.amount,
+            payload.category_id,
             payload.date.isoformat(),
             payload.note,
             datetime.now(UTC).isoformat(),
@@ -53,8 +55,14 @@ def get_expense(expense_id: int, conn: Connection) -> Expense:
 @router.put("/{expense_id}")
 def update_expense(expense_id: int, payload: ExpenseIn, conn: Connection) -> Expense:
     cursor = conn.execute(
-        "UPDATE expenses SET amount = ?, date = ?, note = ? WHERE id = ?",
-        (payload.amount, payload.date.isoformat(), payload.note, expense_id),
+        "UPDATE expenses SET amount = ?, category_id = ?, date = ?, note = ? WHERE id = ?",
+        (
+            payload.amount,
+            payload.category_id,
+            payload.date.isoformat(),
+            payload.note,
+            expense_id,
+        ),
     )
     if cursor.rowcount == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Expense not found")

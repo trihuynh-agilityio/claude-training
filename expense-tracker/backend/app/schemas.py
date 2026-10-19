@@ -1,11 +1,16 @@
 from datetime import date as Date
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, StrictInt, field_validator
 
 MAX_AMOUNT = 1_000_000_000
 MAX_NOTE_LENGTH = 120
+
+# The fixed category ids; names and colors live in frontend/src/lib/categories.ts.
+CategoryId = Literal[
+    "food", "transport", "bills", "shopping", "leisure", "health", "education", "other"
+]
 
 
 class ExpenseIn(BaseModel):
@@ -13,6 +18,7 @@ class ExpenseIn(BaseModel):
 
     # Whole đồng: VND has no minor unit, so floats and strings are rejected.
     amount: Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
+    category_id: CategoryId
     date: Date
     note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
 
