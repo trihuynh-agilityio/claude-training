@@ -1,6 +1,8 @@
 ---
 name: release-checklist
 description: Use when preparing a release of the Personal Expense Tracker, before merging a feature branch into dev, or when asked whether the expense tracker is ready to ship.
+model: sonnet
+allowed-tools: Bash(uv sync --directory backend) Bash(uv run --directory backend *) Bash(npm --prefix frontend *) Bash(git diff *) Bash(git log *) Read Grep Glob
 ---
 
 # Release checklist
@@ -10,7 +12,8 @@ Run every step from `expense-tracker/` and report each result. A failing step bl
 ## 1. Backend tests
 
 ```bash
-(cd backend && uv sync && uv run pytest)
+uv sync --directory backend
+uv run --directory backend pytest
 ```
 
 All tests pass. Use `uv run`, never pip or an activated venv.
@@ -18,7 +21,10 @@ All tests pass. Use `uv run`, never pip or an activated venv.
 ## 2. Frontend lint, tests and build
 
 ```bash
-(cd frontend && npm install && npm run lint && npm test && npm run build)
+npm --prefix frontend install
+npm --prefix frontend run lint
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
 - `npm run lint` is oxlint, not ESLint. No errors.
@@ -43,8 +49,8 @@ Read the diff against `dev` (`git diff dev...HEAD -- expense-tracker/`) and chec
 Vitest does not cover components, so run both servers and click through the changed screens:
 
 ```bash
-(cd backend && uv run fastapi dev app/main.py)   # terminal 1
-(cd frontend && npm run dev)                    # terminal 2
+uv run --directory backend fastapi dev app/main.py   # terminal 1
+npm --prefix frontend run dev                       # terminal 2
 ```
 
 On http://localhost:5173: add, edit and delete an expense (delete goes through the confirm dialog), apply the filters, and confirm amounts show in VND.
