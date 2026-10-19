@@ -1,6 +1,8 @@
+import { getCategory } from '../lib/categories'
 import { formatVND } from '../lib/money'
 import type { Expense } from '../types'
-import { PencilIcon, ReceiptIcon, TrashIcon } from './icons'
+import { CategoryTile } from './CategoryTile'
+import { PencilIcon, TrashIcon } from './icons'
 
 type Props = {
   expense: Expense
@@ -13,11 +15,12 @@ export function ExpenseRow({ expense, onEdit, onDelete }: Props) {
 
   return (
     <li className="expense-row">
-      <span className="tile">
-        <ReceiptIcon />
-      </span>
-      <span className={expense.note ? 'expense-note' : 'expense-note empty'}>
-        {expense.note ?? 'No note'}
+      <CategoryTile categoryId={expense.category_id} />
+      <span className="expense-text">
+        <span className={expense.note ? 'expense-note' : 'expense-note empty'}>
+          {expense.note ?? 'No note'}
+        </span>
+        <span className="expense-category">{getCategory(expense.category_id).name}</span>
       </span>
       <span className="expense-amount num">{formatVND(expense.amount)}</span>
       <span className="row-actions">

@@ -9,11 +9,12 @@ import {
   type ExpenseField,
 } from '../lib/validation'
 import type { Expense, ExpenseInput } from '../types'
+import { CategoryPicker } from './CategoryPicker'
 import { AlertIcon, CloseIcon, TrashIcon } from './icons'
 import { useModalDialog } from './useModalDialog'
 
 const QUICK_AMOUNTS = [50_000, 100_000, 200_000, 500_000]
-const FIELD_ORDER: ExpenseField[] = ['amount', 'date', 'note']
+const FIELD_ORDER: ExpenseField[] = ['amount', 'category', 'date', 'note']
 
 type Props = {
   /** The expense being edited; omit to add a new one. */
@@ -37,6 +38,7 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
   const today = todayISO()
   const [draft, setDraft] = useState<ExpenseDraft>({
     amount: expense ? String(expense.amount) : '',
+    category: expense?.category_id ?? '',
     date: expense?.date ?? today,
     note: expense?.note ?? '',
   })
@@ -45,6 +47,7 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
   const [serverError, setServerError] = useState<string | null>(null)
 
   const amountRef = useRef<HTMLInputElement>(null)
+  const categoryRef = useRef<HTMLButtonElement>(null)
   const dateRef = useRef<HTMLInputElement>(null)
   const noteRef = useRef<HTMLInputElement>(null)
   const dialogRef = useModalDialog(amountRef)
@@ -62,7 +65,7 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
     const current = validateExpense(draft, today)
     const firstInvalid = FIELD_ORDER.find((field) => current[field])
     if (firstInvalid) {
-      const refs = { amount: amountRef, date: dateRef, note: noteRef }
+      const refs = { amount: amountRef, category: categoryRef, date: dateRef, note: noteRef }
       refs[firstInvalid].current?.focus()
       return
     }
@@ -143,6 +146,21 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="field">
+            <span className="label" id="category-label">
+              Category
+            </span>
+            <CategoryPicker
+              value={draft.category}
+              onChange={(id) => set('category', id)}
+              labelId="category-label"
+              errorId="category-error"
+              invalid={Boolean(errors.category)}
+              focusRef={categoryRef}
+            />
+            <FieldError id="category-error" message={errors.category} />
           </div>
 
           <div className="field">

@@ -48,7 +48,7 @@ expense-tracker/
 | `PUT` | `/api/expenses/{id}` | Replace an expense, or `404` |
 | `DELETE` | `/api/expenses/{id}` | Delete an expense, returns `204`, or `404` |
 
-An expense is `{id, amount, date, note, created_at}`. `amount` is a whole number of đồng from 1 to 1.000.000.000, `date` is `YYYY-MM-DD` and can't be in the future, and `note` is optional (trimmed, up to 120 characters). Invalid input returns `422`.
+An expense is `{id, amount, category_id, date, note, created_at}`. `amount` is a whole number of đồng from 1 to 1.000.000.000, `category_id` is required and is one of `food`, `transport`, `bills`, `shopping`, `leisure`, `health`, `education` or `other` (expenses saved before categories existed become `other`), `date` is `YYYY-MM-DD` and can't be in the future, and `note` is optional (trimmed, up to 120 characters). Invalid input returns `422`.
 
 ## Getting Started
 
