@@ -8,6 +8,10 @@ Personal Expense Tracker: a React + TypeScript + Vite frontend (`frontend/`) and
 
 `README.md` lists five phases: expenses, categories, filtering, monthly summaries, budgets. Build them in order and keep each phase small. **Storage has not been chosen yet**; it is decided in Phase 1.
 
+## UI design
+
+Build the frontend to `design/DESIGN.md`. It covers the tokens, components, screens, validation copy, VND formatting and which UI belongs to which phase. The visual source is the design canvas at https://claude.ai/artifact/SdumiU3oAt8stbaR3ASLEa. If the two disagree, ask before picking one.
+
 ## Git workflow
 
 - Work on `dayNN/<topic>` branches cut from `dev` (e.g. `day06/expense-tracker-scaffold`).
