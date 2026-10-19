@@ -11,9 +11,15 @@ CREATE TABLE IF NOT EXISTS expenses (
     amount INTEGER NOT NULL CHECK (amount > 0),
     date TEXT NOT NULL,
     note TEXT,
+    category_id TEXT NOT NULL DEFAULT 'other',
     created_at TEXT NOT NULL
 )
 """
+
+# Databases created before categories existed lack the column; their rows become "other".
+ADD_CATEGORY_COLUMN = (
+    "ALTER TABLE expenses ADD COLUMN category_id TEXT NOT NULL DEFAULT 'other'"
+)
 
 
 def get_db_path() -> Path:
@@ -33,6 +39,9 @@ def connect() -> sqlite3.Connection:
 def init_db() -> None:
     with connect() as conn:
         conn.execute(SCHEMA)
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(expenses)")}
+        if "category_id" not in columns:
+            conn.execute(ADD_CATEGORY_COLUMN)
     conn.close()
 
 

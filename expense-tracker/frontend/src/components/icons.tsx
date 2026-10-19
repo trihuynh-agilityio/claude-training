@@ -57,13 +57,6 @@ export const CloseIcon = ({ size }: IconProps) => (
   </Svg>
 )
 
-export const ReceiptIcon = ({ size }: IconProps) => (
-  <Svg size={size}>
-    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
-    <path d="M9 8h6M9 12h6" />
-  </Svg>
-)
-
 export const WalletIcon = ({ size = 28 }: IconProps) => (
   <Svg size={size}>
     <rect x="3" y="6" width="18" height="13" rx="2" />
