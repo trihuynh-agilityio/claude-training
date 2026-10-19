@@ -14,9 +14,9 @@ A simple personal expense tracker for recording daily expenses and understanding
 
 ## Tech Stack
 
-- **Frontend:** React 19 + TypeScript + Vite 8, linted with oxlint (`frontend/`)
+- **Frontend:** React 19 + TypeScript + Vite 8, linted with oxlint, unit-tested with Vitest (`frontend/`)
 - **Backend:** Python 3.13 + FastAPI, managed with uv, tested with pytest (`backend/`)
-- **Storage:** not chosen yet; to be decided in Phase 1
+- **Storage:** SQLite through Python's built-in `sqlite3`. The database file is `backend/data/expenses.db` (git-ignored, created on startup); set `EXPENSE_DB_PATH` to use another file.
 
 In development, the Vite dev server proxies `/api` requests to the backend on port 8000.
 
@@ -24,12 +24,31 @@ In development, the Vite dev server proxies `/api` requests to the backend on po
 
 ```
 expense-tracker/
+├── design/DESIGN.md   UI design spec (tokens, components, screens, validation)
 ├── frontend/          React + TypeScript app (Vite)
-│   └── src/           App entry point and components
+│   └── src/
+│       ├── api/       Typed client for /api/expenses
+│       ├── components/  Screens, dialogs and shared UI
+│       └── lib/       Pure helpers (VND, dates, validation) with Vitest tests
 └── backend/           FastAPI app (uv)
-    ├── app/main.py    API entry point, including GET /api/health
+    ├── app/main.py    App setup and GET /api/health
+    ├── app/expenses.py  /api/expenses routes
+    ├── app/schemas.py   Request and response models with validation
+    ├── app/db.py      SQLite connection and schema
     └── tests/         pytest tests
 ```
+
+## API
+
+| Method | Path | Result |
+|---|---|---|
+| `GET` | `/api/expenses` | All expenses, newest date first |
+| `POST` | `/api/expenses` | Create an expense, returns `201` |
+| `GET` | `/api/expenses/{id}` | One expense, or `404` |
+| `PUT` | `/api/expenses/{id}` | Replace an expense, or `404` |
+| `DELETE` | `/api/expenses/{id}` | Delete an expense, returns `204`, or `404` |
+
+An expense is `{id, amount, date, note, created_at}`. `amount` is a whole number of đồng from 1 to 1.000.000.000, `date` is `YYYY-MM-DD` and can't be in the future, and `note` is optional (trimmed, up to 120 characters). Invalid input returns `422`.
 
 ## Getting Started
 
@@ -51,13 +70,13 @@ npm install
 npm run dev
 ```
 
-The page should show **API status: ok** when both are running.
+Open http://localhost:5173 to see the Transactions screen. If the backend isn't running, the page shows "Couldn't load your expenses".
 
 Run checks:
 
 ```bash
 cd backend && uv run pytest
-cd frontend && npm run lint && npm run build
+cd frontend && npm run lint && npm test && npm run build
 ```
 
 ## Development Roadmap

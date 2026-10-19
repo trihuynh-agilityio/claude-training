@@ -1,0 +1,92 @@
+import type { ReactNode } from 'react'
+
+type IconProps = { size?: number }
+
+function Svg({ size = 20, strokeWidth = 1.8, children }: IconProps & { strokeWidth?: number; children: ReactNode }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  )
+}
+
+export const PlusIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+)
+
+export const LogoIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <path d="M4 7h16M4 12h10M4 17h6" />
+  </Svg>
+)
+
+export const ListIcon = ({ size }: IconProps) => (
+  <Svg size={size}>
+    <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+  </Svg>
+)
+
+export const PencilIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="M13.5 6.5l4 4" />
+  </Svg>
+)
+
+export const TrashIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+  </Svg>
+)
+
+export const CloseIcon = ({ size }: IconProps) => (
+  <Svg size={size} strokeWidth={2}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+)
+
+export const ReceiptIcon = ({ size }: IconProps) => (
+  <Svg size={size}>
+    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+    <path d="M9 8h6M9 12h6" />
+  </Svg>
+)
+
+export const WalletIcon = ({ size = 28 }: IconProps) => (
+  <Svg size={size}>
+    <rect x="3" y="6" width="18" height="13" rx="2" />
+    <path d="M3 10h18M16 15h2" />
+  </Svg>
+)
+
+export const AlertIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v6M12 16.5h.01" />
+  </Svg>
+)
+
+export const WarningIcon = ({ size = 28 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M12 3l9.5 17h-19z" />
+    <path d="M12 10v4M12 17h.01" />
+  </Svg>
+)
+
+export const CheckIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2.4}>
+    <path d="M5 12l5 5 9-10" />
+  </Svg>
+)
