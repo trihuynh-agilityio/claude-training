@@ -16,6 +16,10 @@ Build the frontend to `design/DESIGN.md`. It covers the tokens, components, scre
 
 `.claude/settings.json` registers a `PostToolUse` hook (`.claude/hooks/format-on-edit.sh`) that runs Ruff on edited backend `.py` files and Prettier on edited frontend files. It loads when Claude is started from `expense-tracker/`, and never blocks an edit if a formatter fails.
 
+## Blocked commands
+
+`.claude/settings.json` registers a `PreToolUse` hook (`.claude/hooks/block-forbidden-command.sh`) on `Bash`. It exits 2, blocking the call, for: pip / manual venv activation / ESLint (use uv and oxlint), force pushes and pushes or merges on `main`, `rm -rf` on `/`, `~`, `.` or `..`, `git reset --hard`, `git clean -f`, and deleting `backend/data/expenses.db`. If a block is wrong, change the rules in the script rather than working around it.
+
 ## Git workflow
 
 - Work on `dayNN/<topic>` branches cut from `dev` (e.g. `day06/expense-tracker-scaffold`).
