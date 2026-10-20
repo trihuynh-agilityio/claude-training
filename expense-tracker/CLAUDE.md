@@ -12,6 +12,10 @@ Personal Expense Tracker: a React + TypeScript + Vite frontend (`frontend/`) and
 
 Build the frontend to `design/DESIGN.md`. It covers the tokens, components, screens, validation copy, VND formatting and which UI belongs to which phase. The visual source is the design canvas at https://claude.ai/artifact/SdumiU3oAt8stbaR3ASLEa. If the two disagree, ask before picking one.
 
+## Format on edit
+
+`.claude/settings.json` registers a `PostToolUse` hook (`.claude/hooks/format-on-edit.sh`) that runs Ruff on edited backend `.py` files and Prettier on edited frontend files. It loads when Claude is started from `expense-tracker/`, and never blocks an edit if a formatter fails.
+
 ## Git workflow
 
 - Work on `dayNN/<topic>` branches cut from `dev` (e.g. `day06/expense-tracker-scaffold`).
@@ -25,6 +29,7 @@ uv sync
 uv run fastapi dev app/main.py              # http://localhost:8000, docs at /docs
 uv run pytest                               # all tests
 uv run pytest tests/test_health.py::test_health_returns_ok   # single test
+uv run ruff format .                        # format (dev dependency)
 ```
 
 - Managed with **uv** (`pyproject.toml` + committed `uv.lock`). Always use `uv run …` and `uv add` / `uv add --dev`, never pip or a manually activated venv.
@@ -42,6 +47,7 @@ npm run dev        # http://localhost:5173
 npm run lint       # oxlint (config: .oxlintrc.json), not ESLint
 npm test           # vitest run (helpers in src/lib)
 npm run build      # tsc -b type-check, then vite build
+npm run format     # prettier --write (config: .prettierrc.json)
 ```
 
 - Scaffolded from the `create-vite` `react-ts` template (React 19, Vite 8, TypeScript ~6.0). No router or UI library.
