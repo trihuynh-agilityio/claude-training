@@ -20,6 +20,10 @@ Build the frontend to `design/DESIGN.md`. It covers the tokens, components, scre
 
 `.claude/settings.json` registers a `PreToolUse` hook (`.claude/hooks/block-forbidden-command.sh`) on `Bash`. It exits 2, blocking the call, for: pip / manual venv activation / ESLint (use uv and oxlint), force pushes and pushes or merges on `main`, `rm -rf` on `/`, `~`, `.` or `..`, `git reset --hard`, `git clean -f`, and deleting `backend/data/expenses.db`. If a block is wrong, change the rules in the script rather than working around it.
 
+## Notify on finish
+
+`.claude/settings.json` also registers a `Stop` hook (`.claude/hooks/notify-on-finish.sh`) that shows a macOS notification when Claude finishes responding. It does nothing where `osascript` is unavailable and never blocks.
+
 ## Git workflow
 
 - Work on `dayNN/<topic>` branches cut from `dev` (e.g. `day06/expense-tracker-scaffold`).
