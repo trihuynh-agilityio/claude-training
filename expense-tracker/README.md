@@ -33,6 +33,7 @@ expense-tracker/
 └── backend/           FastAPI app (uv)
     ├── app/main.py    App setup and GET /api/health
     ├── app/expenses.py  /api/expenses routes
+    ├── app/summary.py   /api/summary monthly totals
     ├── app/schemas.py   Request and response models with validation
     ├── app/db.py      SQLite connection and schema
     └── tests/         pytest tests
@@ -47,6 +48,7 @@ expense-tracker/
 | `GET` | `/api/expenses/{id}` | One expense, or `404` |
 | `PUT` | `/api/expenses/{id}` | Replace an expense, or `404` |
 | `DELETE` | `/api/expenses/{id}` | Delete an expense, returns `204`, or `404` |
+| `GET` | `/api/summary?month=YYYY-MM` | Spending for a month (default: this month): total, count, per-category totals (largest first) and the total of the month before up to the same day |
 
 An expense is `{id, amount, category_id, date, note, created_at}`. `amount` is a whole number of đồng from 1 to 1.000.000.000, `category_id` is required and is one of `food`, `transport`, `bills`, `shopping`, `leisure`, `health`, `education` or `other` (expenses saved before categories existed become `other`), `date` is `YYYY-MM-DD` and can't be in the future, and `note` is optional (trimmed, up to 120 characters). Invalid input returns `422`.
 
@@ -70,7 +72,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 to see the Transactions screen. If the backend isn't running, the page shows "Couldn't load your expenses".
+Open http://localhost:5173 to see the Dashboard (month switcher, spent total, spending by category, recent transactions); Transactions has the full list and filters. If the backend isn't running, the page shows "Couldn't load your expenses".
 
 Run checks:
 

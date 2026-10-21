@@ -1,6 +1,21 @@
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
 function parseISODate(iso: string): Date {
   const [year, month, day] = iso.split('-').map(Number)
   return new Date(year, month - 1, day)
@@ -55,4 +70,12 @@ export function groupByDay<T extends { date: string; amount: number }>(
     group.total += item.amount
   }
   return groups
+}
+
+const WEEKDAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+/** "2026-10-16" → "Friday, 16 October 2026". */
+export function formatLongDate(iso: string): string {
+  const date = parseISODate(iso)
+  return `${WEEKDAYS_LONG[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
 }

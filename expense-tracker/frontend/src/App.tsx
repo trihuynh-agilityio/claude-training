@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from './api/expenses'
-import { AppShell } from './components/AppShell'
+import { AppShell, type View } from './components/AppShell'
+import { DashboardPage } from './components/DashboardPage'
 import { ConfirmDeleteDialog } from './components/ConfirmDeleteDialog'
 import { ExpenseFormDialog } from './components/ExpenseFormDialog'
 import { Toast } from './components/Toast'
@@ -21,6 +22,9 @@ function App() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [view, setView] = useState<View>('dashboard')
+  // Bumped after every change so the dashboard fetches its summary again.
+  const [version, setVersion] = useState(0)
 
   const load = useCallback(
     () =>
@@ -28,6 +32,7 @@ function App() {
         (data) => {
           setExpenses(data)
           setStatus('ready')
+          setVersion((count) => count + 1)
         },
         () => setStatus('error'),
       ),
@@ -100,16 +105,27 @@ function App() {
   const openAdd = () => setForm({ mode: 'add' })
 
   return (
-    <AppShell onAdd={openAdd}>
-      <TransactionsPage
-        expenses={expenses}
-        status={status}
-        showSkeleton={showSkeleton}
-        onAdd={openAdd}
-        onEdit={(expense) => setForm({ mode: 'edit', expense })}
-        onDelete={askDelete}
-        onRetry={retry}
-      />
+    <AppShell view={view} onNavigate={setView} onAdd={openAdd}>
+      {view === 'dashboard' ? (
+        <DashboardPage
+          expenses={expenses}
+          version={version}
+          onAdd={openAdd}
+          onEdit={(expense) => setForm({ mode: 'edit', expense })}
+          onDelete={askDelete}
+          onViewAll={() => setView('transactions')}
+        />
+      ) : (
+        <TransactionsPage
+          expenses={expenses}
+          status={status}
+          showSkeleton={showSkeleton}
+          onAdd={openAdd}
+          onEdit={(expense) => setForm({ mode: 'edit', expense })}
+          onDelete={askDelete}
+          onRetry={retry}
+        />
+      )}
 
       {form && (
         <ExpenseFormDialog
