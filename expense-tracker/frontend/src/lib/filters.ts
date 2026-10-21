@@ -33,7 +33,7 @@ export function rangeBounds(range: DateRange, today: string = todayISO()): DateB
     case 'this-month':
       return { from: firstOfMonth, to: today }
     case 'last-7-days':
-      return { from: addDays(today, -6), to: today }
+      return { from: addDays(today, -7), to: today }
     case 'last-month': {
       const lastOfPrevious = addDays(firstOfMonth, -1)
       return { from: `${lastOfPrevious.slice(0, 7)}-01`, to: lastOfPrevious }

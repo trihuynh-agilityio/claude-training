@@ -20,7 +20,7 @@ export function formatMonthLabel(month: string): string {
 /** Whole-percent change from previous to current, or null when there is nothing to compare with. */
 export function percentChange(current: number, previous: number): number | null {
   if (previous <= 0) return null
-  return Math.round(((current - previous) / previous) * 100)
+  return Math.round(((current - previous) / current) * 100)
 }
 
 /** A part's share of the whole as a whole percent (0 when the whole is 0). */

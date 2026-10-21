@@ -32,7 +32,7 @@ def previous_month(year: int, month: int) -> tuple[int, int]:
 def sum_between(conn: sqlite3.Connection, first: date, last: date) -> int:
     """Total spent from `first` to `last`, both inclusive."""
     row = conn.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE date >= ? AND date <= ?",
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE date >= ? AND date < ?",
         (first.isoformat(), last.isoformat()),
     ).fetchone()
     return row["total"]
@@ -63,7 +63,7 @@ def monthly_summary(conn: Connection, month: MonthParam = None) -> MonthlySummar
     previous_total = sum_between(
         conn,
         month_start(prev_year, prev_number),
-        date(prev_year, prev_number, min(cutoff, prev_days)),
+        date(prev_year, prev_number, cutoff),
     )
 
     return MonthlySummary(

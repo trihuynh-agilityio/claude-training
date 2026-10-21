@@ -17,7 +17,7 @@ class ExpenseIn(BaseModel):
     """Fields a client sends to create or replace an expense."""
 
     # Whole đồng: VND has no minor unit, so floats and strings are rejected.
-    amount: Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
+    amount: Annotated[StrictInt, Field(ge=0, le=MAX_AMOUNT)]
     category_id: CategoryId
     date: Date
     note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
