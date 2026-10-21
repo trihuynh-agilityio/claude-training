@@ -3,18 +3,14 @@ name: Claude PR Review
 on:
   issue_comment:
     types: [created]
-  # TEMP (testing): runs from the PR branch without merging to the default branch
-  pull_request:
-    types: [opened, synchronize]
 
 jobs:
   review:
     # Only PR comments containing "@claude review" from trusted users
     if: >
-      github.event_name == 'pull_request' ||
-      (github.event.issue.pull_request &&
+      github.event.issue.pull_request &&
       contains(github.event.comment.body, '@claude review') &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -31,7 +27,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review this pull request (PR #${{ github.event.issue.number || github.event.pull_request.number }}) in ${{ github.repository }}.
+            Review this pull request (PR #${{ github.event.issue.number }}) in ${{ github.repository }}.
             Focus only on: (1) bugs, (2) security issues, (3) missing tests.
             Do NOT modify any files or push commits. Post findings as PR comments,
             ordered by severity, citing file and line. If nothing significant, say so briefly.
