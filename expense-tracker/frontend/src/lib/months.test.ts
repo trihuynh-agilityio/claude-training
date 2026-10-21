@@ -17,6 +17,9 @@ describe('shiftMonth', () => {
     expect(shiftMonth('2026-01', -1)).toBe('2025-12')
     expect(shiftMonth('2025-12', 1)).toBe('2026-01')
     expect(shiftMonth('2026-03', -15)).toBe('2024-12')
+    expect(shiftMonth('2026-10', -120)).toBe('2016-10')
+    expect(shiftMonth('2026-10', -23)).toBe('2024-11')
+    expect(shiftMonth('2026-10', 14)).toBe('2027-12')
   })
 })
 

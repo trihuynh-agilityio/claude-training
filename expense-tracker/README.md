@@ -48,7 +48,7 @@ expense-tracker/
 | `GET` | `/api/expenses/{id}` | One expense, or `404` |
 | `PUT` | `/api/expenses/{id}` | Replace an expense, or `404` |
 | `DELETE` | `/api/expenses/{id}` | Delete an expense, returns `204`, or `404` |
-| `GET` | `/api/summary?month=YYYY-MM` | Spending for a month (default: this month): total, count, per-category totals (largest first) and the total of the month before up to the same day |
+| `GET` | `/api/summary?month=YYYY-MM&today=YYYY-MM-DD` | Spending for a month (1900-01 to 2099-12): total, count, per-category totals (largest first) and the total of the month before up to the same day. `today` is the caller's date (the frontend sends its own, so both agree on "this month"); both default to the server's date |
 
 An expense is `{id, amount, category_id, date, note, created_at}`. `amount` is a whole number of đồng from 1 to 1.000.000.000, `category_id` is required and is one of `food`, `transport`, `bills`, `shopping`, `leisure`, `health`, `education` or `other` (expenses saved before categories existed become `other`), `date` is `YYYY-MM-DD` and can't be in the future, and `note` is optional (trimmed, up to 120 characters). Invalid input returns `422`.
 

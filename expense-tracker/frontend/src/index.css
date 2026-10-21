@@ -727,6 +727,21 @@ input {
   font-weight: 600;
 }
 
+.panel-note {
+  margin-top: 12px;
+  color: var(--muted);
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard[aria-busy='true'] {
+  opacity: 0.7;
+}
+
 .link-btn {
   min-height: 44px;
   padding: 0 4px;

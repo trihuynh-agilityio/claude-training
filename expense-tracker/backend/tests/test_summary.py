@@ -1,13 +1,23 @@
 from datetime import date
 
+import pytest
+
 from tests.test_expenses import make_expense
 
-TODAY = date.today()
-THIS_MONTH = f"{TODAY.year:04d}-{TODAY.month:02d}"
+# Summary tests pass `today` explicitly so they never depend on the real clock.
+# make_expense only accepts dates up to the real today, so all data here is in the past.
+NOW = "2026-10-21"
 
 
-def summary(client, month):
-    response = client.get("/api/summary", params={"month": month})
+def get_summary(client, month=None, today=NOW):
+    params = {"today": today}
+    if month is not None:
+        params["month"] = month
+    return client.get("/api/summary", params=params)
+
+
+def summary(client, month=None, today=NOW):
+    response = get_summary(client, month, today)
     assert response.status_code == 200, response.text
     return response.json()
 
@@ -22,14 +32,20 @@ def test_empty_month(client):
     }
 
 
-def test_defaults_to_the_current_month(client):
-    make_expense(client, amount=1000)
+def test_defaults_to_the_month_of_today(client):
+    make_expense(client, amount=1000, date="2026-10-05")
 
+    result = summary(client, today="2026-10-21")
+
+    assert result["month"] == "2026-10"
+    assert result["total"] == 1000
+
+
+def test_defaults_to_the_servers_date_without_today(client):
     response = client.get("/api/summary")
 
     assert response.status_code == 200
-    assert response.json()["month"] == THIS_MONTH
-    assert response.json()["total"] == 1000
+    assert response.json()["month"] == date.today().isoformat()[:7]
 
 
 def test_totals_and_counts_per_category_sorted_by_amount(client):
@@ -62,9 +78,7 @@ def test_past_month_compares_with_the_whole_previous_month(client):
     make_expense(client, amount=500, date="2026-02-27")
     make_expense(client, amount=700, date="2026-03-10")
 
-    result = summary(client, "2026-03")
-
-    assert result["same_day_last_month_total"] == 500
+    assert summary(client, "2026-03")["same_day_last_month_total"] == 500
 
 
 def test_comparison_is_clamped_when_previous_month_is_shorter(client):
@@ -81,19 +95,83 @@ def test_comparison_crosses_the_year_boundary(client):
     assert summary(client, "2026-01")["same_day_last_month_total"] == 400
 
 
-def test_current_month_compares_up_to_today_only(client):
-    year, month = (
-        (TODAY.year - 1, 12) if TODAY.month == 1 else (TODAY.year, TODAY.month - 1)
+def test_current_month_compares_up_to_and_including_today(client):
+    make_expense(client, amount=1, date="2026-09-20")
+    make_expense(client, amount=10, date="2026-09-21")  # the cutoff day itself
+    make_expense(client, amount=100, date="2026-09-22")  # after the cutoff
+    make_expense(client, amount=1000, date="2026-09-30")
+
+    result = summary(client, "2026-10", today="2026-10-21")
+
+    assert result["same_day_last_month_total"] == 11
+
+
+def test_cutoff_follows_the_callers_date(client):
+    # Near midnight a UTC server and a UTC+7 caller disagree on the day; the caller wins.
+    make_expense(client, amount=1, date="2026-09-30")
+    make_expense(client, amount=10, date="2026-10-01")
+    make_expense(client, amount=100, date="2026-09-01")
+
+    assert (
+        summary(client, "2026-10", today="2026-10-01")["same_day_last_month_total"]
+        == 100
     )
-    make_expense(client, amount=111, date=date(year, month, 1).isoformat())
-    # A previous-month expense after today's day-of-month is not part of the comparison.
-    if TODAY.day < 28:
-        make_expense(client, amount=999, date=date(year, month, 28).isoformat())
-
-    assert summary(client, THIS_MONTH)["same_day_last_month_total"] == 111
+    assert (
+        summary(client, "2026-09", today="2026-10-01")["same_day_last_month_total"] == 0
+    )
 
 
-def test_invalid_month_is_rejected(client):
-    for bad in ["2026-13", "2026-00", "2026-3", "March", "2026-03-01"]:
-        response = client.get("/api/summary", params={"month": bad})
-        assert response.status_code == 422, bad
+def test_month_without_previous_data_compares_to_zero(client):
+    make_expense(client, amount=700, date="2026-03-10")
+
+    result = summary(client, "2026-03")
+
+    assert result["total"] == 700
+    assert result["same_day_last_month_total"] == 0
+
+
+def test_future_month_is_empty_and_compares_to_the_month_before(client):
+    make_expense(client, amount=250, date="2026-10-02")
+
+    result = summary(client, "2027-01", today="2026-10-21")
+
+    assert result["total"] == 0
+    assert result["categories"] == []
+    assert result["same_day_last_month_total"] == 0
+    assert (
+        summary(client, "2026-11", today="2026-10-21")["same_day_last_month_total"]
+        == 250
+    )
+
+
+@pytest.mark.parametrize("month", ["1900-01", "2099-12"])
+def test_edges_of_the_supported_years_work(client, month):
+    result = summary(client, month)
+
+    assert result["month"] == month
+    assert result["total"] == 0
+
+
+@pytest.mark.parametrize(
+    "month",
+    [
+        "0000-01",
+        "0001-01",
+        "1899-12",
+        "2100-01",
+        "9999-12",
+        "2026-13",
+        "2026-00",
+        "2026-3",
+        "March",
+    ],
+)
+def test_unsupported_or_malformed_month_is_rejected(client, month):
+    assert get_summary(client, month).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "today", ["0001-01-01", "1899-12-31", "2100-01-01", "yesterday"]
+)
+def test_unsupported_or_malformed_today_is_rejected(client, today):
+    assert get_summary(client, today=today).status_code == 422

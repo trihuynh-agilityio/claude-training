@@ -23,8 +23,10 @@ function App() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [view, setView] = useState<View>('dashboard')
-  // Bumped after every change so the dashboard fetches its summary again.
+  // Bumped after every saved change, even if reloading the list then fails, so the dashboard
+  // fetches its summary again.
   const [version, setVersion] = useState(0)
+  const bumpVersion = () => setVersion((count) => count + 1)
 
   const load = useCallback(
     () =>
@@ -32,7 +34,6 @@ function App() {
         (data) => {
           setExpenses(data)
           setStatus('ready')
-          setVersion((count) => count + 1)
         },
         () => setStatus('error'),
       ),
@@ -77,6 +78,7 @@ function App() {
       setToast('Expense added')
     }
     setForm(null)
+    bumpVersion()
     await load()
   }
 
@@ -93,6 +95,7 @@ function App() {
       await deleteExpense(deleting.id)
       setDeleting(null)
       setToast('Expense deleted')
+      bumpVersion()
       await load()
     } catch {
       setDeleteError('Couldn’t delete this expense. Try again.')
@@ -109,11 +112,13 @@ function App() {
       {view === 'dashboard' ? (
         <DashboardPage
           expenses={expenses}
+          status={status}
           version={version}
           onAdd={openAdd}
           onEdit={(expense) => setForm({ mode: 'edit', expense })}
           onDelete={askDelete}
           onViewAll={() => setView('transactions')}
+          onRetry={retry}
         />
       ) : (
         <TransactionsPage

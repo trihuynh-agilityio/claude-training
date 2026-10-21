@@ -12,11 +12,22 @@ router = APIRouter(prefix="/api/summary", tags=["summary"])
 
 Connection = Annotated[sqlite3.Connection, Depends(get_connection)]
 
+# Years 1900-2099 keep every date this module builds (including the month before) valid.
 MonthParam = Annotated[
     str | None,
     Query(
-        pattern=r"^\d{4}-(0[1-9]|1[0-2])$",
-        description="YYYY-MM, defaults to this month",
+        pattern=r"^(19|20)\d{2}-(0[1-9]|1[0-2])$",
+        description="YYYY-MM from 1900-01 to 2099-12, defaults to the month of `today`",
+    ),
+]
+
+TodayParam = Annotated[
+    date | None,
+    Query(
+        ge=date(1900, 1, 1),
+        le=date(2099, 12, 31),
+        description="The caller's date (YYYY-MM-DD), so the current month and the"
+        " same-day cutoff follow its clock; defaults to the server's date",
     ),
 ]
 
@@ -39,8 +50,10 @@ def sum_between(conn: sqlite3.Connection, first: date, last: date) -> int:
 
 
 @router.get("")
-def monthly_summary(conn: Connection, month: MonthParam = None) -> MonthlySummary:
-    today = date.today()
+def monthly_summary(
+    conn: Connection, month: MonthParam = None, today: TodayParam = None
+) -> MonthlySummary:
+    today = today or date.today()
     if month is None:
         month = f"{today.year:04d}-{today.month:02d}"
     year, number = int(month[:4]), int(month[5:])

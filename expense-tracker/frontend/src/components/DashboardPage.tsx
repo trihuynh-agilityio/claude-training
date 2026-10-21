@@ -8,42 +8,57 @@ import { CategoryBreakdown } from './CategoryBreakdown'
 import { ExpenseRow } from './ExpenseRow'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, WalletIcon } from './icons'
 import { ErrorState, ListSkeleton } from './States'
+import type { LoadStatus } from './TransactionsPage'
 
 /** Only show the skeleton if loading takes longer than this, to avoid a flash. */
 const SKELETON_DELAY_MS = 300
 const RECENT_COUNT = 6
 
-type Result = { key: string; summary: MonthlySummary | null }
+/** `key` says which request produced it; `summary` is null when that request failed. */
+type Result = { key: string; month: string; summary: MonthlySummary | null }
 
 type Props = {
   /** All expenses, newest first; the recent list shows the latest of the selected month. */
   expenses: Expense[]
+  /** Whether `expenses` has loaded; the recent list can't be trusted before then. */
+  status: LoadStatus
   /** Bumps whenever expenses change, so the summary is fetched again. */
   version: number
   onAdd: () => void
   onEdit: (expense: Expense) => void
   onDelete: (expense: Expense) => void
   onViewAll: () => void
+  onRetry: () => void
 }
 
-export function DashboardPage({ expenses, version, onAdd, onEdit, onDelete, onViewAll }: Props) {
+export function DashboardPage({
+  expenses,
+  status,
+  version,
+  onAdd,
+  onEdit,
+  onDelete,
+  onViewAll,
+  onRetry,
+}: Props) {
   const [month, setMonth] = useState(() => currentMonth())
   const [retries, setRetries] = useState(0)
   const [result, setResult] = useState<Result | null>(null)
   const [slowKey, setSlowKey] = useState<string | null>(null)
 
   const key = `${month}:${version}:${retries}`
-  const current = result?.key === key ? result : null
-  const loading = current === null
   const today = todayISO()
   const isCurrent = month === currentMonth(today)
+  // While a refetch is pending, keep showing the last result for this month instead of blanking.
+  const shown = result?.month === month ? result : null
+  const refreshing = result?.key !== key
 
   useEffect(() => {
     let ignore = false
     // State is set only after the request settles, never synchronously here.
-    getSummary(month).then(
-      (summary) => !ignore && setResult({ key, summary }),
-      () => !ignore && setResult({ key, summary: null }),
+    getSummary(month, todayISO()).then(
+      (summary) => !ignore && setResult({ key, month, summary }),
+      () => !ignore && setResult({ key, month, summary: null }),
     )
     const timer = setTimeout(() => setSlowKey(key), SKELETON_DELAY_MS)
     return () => {
@@ -52,9 +67,9 @@ export function DashboardPage({ expenses, version, onAdd, onEdit, onDelete, onVi
     }
   }, [month, key])
 
-  const summary = current?.summary ?? null
+  const summary = shown?.summary ?? null
+  const failed = !refreshing && shown !== null && shown.summary === null
   const recent = expenses.filter((expense) => expense.date.startsWith(month)).slice(0, RECENT_COUNT)
-  const failed = current !== null && current.summary === null
 
   return (
     <>
@@ -87,7 +102,7 @@ export function DashboardPage({ expenses, version, onAdd, onEdit, onDelete, onVi
         </div>
       </header>
 
-      {loading && slowKey === key && <ListSkeleton />}
+      {summary === null && refreshing && slowKey === key && <ListSkeleton />}
       {failed && <ErrorState onRetry={() => setRetries((count) => count + 1)} />}
       {summary && summary.count === 0 && (
         <section className="card state">
@@ -109,7 +124,7 @@ export function DashboardPage({ expenses, version, onAdd, onEdit, onDelete, onVi
         </section>
       )}
       {summary && summary.count > 0 && (
-        <>
+        <div className="dashboard" aria-busy={refreshing}>
           <section className="kpi-grid" aria-label="Key figures">
             <SpentCard summary={summary} month={month} isCurrent={isCurrent} />
           </section>
@@ -124,19 +139,30 @@ export function DashboardPage({ expenses, version, onAdd, onEdit, onDelete, onVi
                   View all
                 </button>
               </div>
-              <ul className="recent-list">
-                {recent.map((expense) => (
-                  <ExpenseRow
-                    key={expense.id}
-                    expense={expense}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
-                ))}
-              </ul>
+              {status === 'ready' && (
+                <ul className="recent-list">
+                  {recent.map((expense) => (
+                    <ExpenseRow
+                      key={expense.id}
+                      expense={expense}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </ul>
+              )}
+              {status === 'loading' && <p className="panel-note">Loading transactions…</p>}
+              {status === 'error' && (
+                <p className="panel-note" role="alert">
+                  Couldn’t load transactions.{' '}
+                  <button className="link-btn" type="button" onClick={onRetry}>
+                    Try again
+                  </button>
+                </p>
+              )}
             </section>
           </div>
-        </>
+        </div>
       )}
     </>
   )
