@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, formatDayLabel, formatShortDate, groupByDay, todayISO } from './dates'
+import {
+  addDays,
+  formatDayLabel,
+  formatLongDate,
+  formatShortDate,
+  groupByDay,
+  todayISO,
+} from './dates'
 
 const TODAY = '2026-10-16'
 
@@ -46,5 +53,11 @@ describe('groupByDay', () => {
 
   it('returns no groups for no expenses', () => {
     expect(groupByDay([], TODAY)).toEqual([])
+  })
+})
+
+describe('formatLongDate', () => {
+  it('spells out the weekday and month', () => {
+    expect(formatLongDate('2026-10-16')).toBe('Friday, 16 October 2026')
   })
 })

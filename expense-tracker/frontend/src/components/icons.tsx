@@ -2,7 +2,11 @@ import type { ReactNode } from 'react'
 
 type IconProps = { size?: number }
 
-function Svg({ size = 20, strokeWidth = 1.8, children }: IconProps & { strokeWidth?: number; children: ReactNode }) {
+function Svg({
+  size = 20,
+  strokeWidth = 1.8,
+  children,
+}: IconProps & { strokeWidth?: number; children: ReactNode }) {
   return (
     <svg
       width={size}
@@ -81,5 +85,23 @@ export const WarningIcon = ({ size = 28 }: IconProps) => (
 export const CheckIcon = ({ size = 18 }: IconProps) => (
   <Svg size={size} strokeWidth={2.4}>
     <path d="M5 12l5 5 9-10" />
+  </Svg>
+)
+
+export const ChevronLeftIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <path d="m15 6-6 6 6 6" />
+  </Svg>
+)
+
+export const ChevronRightIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <path d="m9 6 6 6-6 6" />
+  </Svg>
+)
+
+export const HomeIcon = ({ size }: IconProps) => (
+  <Svg size={size}>
+    <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
   </Svg>
 )

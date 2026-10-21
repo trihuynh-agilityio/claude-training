@@ -41,3 +41,19 @@ class ExpenseIn(BaseModel):
 class Expense(ExpenseIn):
     id: int
     created_at: datetime
+
+
+class CategoryTotal(BaseModel):
+    category_id: CategoryId
+    total: int
+    count: int
+
+
+class MonthlySummary(BaseModel):
+    """Spending for one month, with the same-day comparison against the month before."""
+
+    month: str
+    total: int
+    count: int
+    same_day_last_month_total: int
+    categories: list[CategoryTotal]
