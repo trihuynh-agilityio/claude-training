@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from './api/expenses'
 import { AppShell, type View } from './components/AppShell'
+import { BudgetPage } from './components/BudgetPage'
 import { DashboardPage } from './components/DashboardPage'
 import { ConfirmDeleteDialog } from './components/ConfirmDeleteDialog'
 import { ExpenseFormDialog } from './components/ExpenseFormDialog'
@@ -118,8 +119,11 @@ function App() {
           onEdit={(expense) => setForm({ mode: 'edit', expense })}
           onDelete={askDelete}
           onViewAll={() => setView('transactions')}
+          onOpenBudget={() => setView('budget')}
           onRetry={retry}
         />
+      ) : view === 'budget' ? (
+        <BudgetPage version={version} onSaved={setToast} />
       ) : (
         <TransactionsPage
           expenses={expenses}

@@ -105,3 +105,11 @@ export const HomeIcon = ({ size }: IconProps) => (
     <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
   </Svg>
 )
+
+export const TargetIcon = ({ size }: IconProps) => (
+  <Svg size={size}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </Svg>
+)
