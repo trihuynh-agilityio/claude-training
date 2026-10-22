@@ -5,6 +5,7 @@ import { formatVND } from '../lib/money'
 import { currentMonth, formatMonthLabel, percentChange, shiftMonth } from '../lib/months'
 import type { Expense, MonthlySummary } from '../types'
 import { CategoryBreakdown } from './CategoryBreakdown'
+import { BudgetCards, BudgetInvite } from './BudgetCards'
 import { ExpenseRow } from './ExpenseRow'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, WalletIcon } from './icons'
 import { ErrorState, ListSkeleton } from './States'
@@ -28,6 +29,7 @@ type Props = {
   onEdit: (expense: Expense) => void
   onDelete: (expense: Expense) => void
   onViewAll: () => void
+  onOpenBudget: () => void
   onRetry: () => void
 }
 
@@ -39,6 +41,7 @@ export function DashboardPage({
   onEdit,
   onDelete,
   onViewAll,
+  onOpenBudget,
   onRetry,
 }: Props) {
   const [month, setMonth] = useState(() => currentMonth())
@@ -123,10 +126,25 @@ export function DashboardPage({
           )}
         </section>
       )}
+      {summary && summary.count === 0 && summary.budget === null && isCurrent && (
+        <section className="kpi-grid" aria-label="Budget">
+          <BudgetInvite canSet onSet={onOpenBudget} />
+        </section>
+      )}
       {summary && summary.count > 0 && (
         <div className="dashboard" aria-busy={refreshing}>
           <section className="kpi-grid" aria-label="Key figures">
             <SpentCard summary={summary} month={month} isCurrent={isCurrent} />
+            {summary.budget ? (
+              <BudgetCards
+                budget={summary.budget}
+                spent={summary.total}
+                isCurrent={isCurrent}
+                today={today}
+              />
+            ) : (
+              <BudgetInvite canSet={isCurrent} onSet={onOpenBudget} />
+            )}
           </section>
           <div className="dashboard-panels">
             <CategoryBreakdown categories={summary.categories} total={summary.total} />

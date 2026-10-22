@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import '../test/setup'
 import { AppShell } from './AppShell'
 
-function setup(view: 'dashboard' | 'transactions' = 'dashboard') {
+function setup(view: 'dashboard' | 'transactions' | 'budget' = 'dashboard') {
   const onNavigate = vi.fn()
   const onAdd = vi.fn()
   render(
@@ -51,6 +51,20 @@ describe('AppShell navigation', () => {
 
     expect(onNavigate).toHaveBeenNthCalledWith(1, 'transactions')
     expect(onNavigate).toHaveBeenNthCalledWith(2, 'dashboard')
+  })
+
+  it('navigates to Budget from the sidebar and the bottom bar', async () => {
+    const { onNavigate } = setup('dashboard')
+    const user = userEvent.setup()
+
+    for (const name of ['Main', 'Main (mobile)']) {
+      await user.click(
+        within(screen.getByRole('navigation', { name })).getByRole('button', { name: 'Budget' }),
+      )
+    }
+
+    expect(onNavigate).toHaveBeenNthCalledWith(1, 'budget')
+    expect(onNavigate).toHaveBeenNthCalledWith(2, 'budget')
   })
 
   it('opens the add form from the floating button', async () => {

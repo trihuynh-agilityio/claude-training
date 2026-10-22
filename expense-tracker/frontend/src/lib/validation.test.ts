@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { toExpenseInput, validateExpense, type ExpenseDraft } from './validation'
+import {
+  toBudgetInput,
+  toExpenseInput,
+  validateBudget,
+  validateExpense,
+  type BudgetDraft,
+  type ExpenseDraft,
+} from './validation'
 
 const TODAY = '2026-10-16'
 const valid: ExpenseDraft = { amount: '65000', category: 'food', date: TODAY, note: 'Phở bò' }
-const check = (overrides: Partial<ExpenseDraft>) => validateExpense({ ...valid, ...overrides }, TODAY)
+const check = (overrides: Partial<ExpenseDraft>) =>
+  validateExpense({ ...valid, ...overrides }, TODAY)
 
 describe('validateExpense', () => {
   it('accepts a complete expense', () => {
@@ -49,14 +57,18 @@ describe('validateExpense', () => {
 
   it('reports every invalid field at once', () => {
     expect(
-      Object.keys(validateExpense({ amount: '', category: '', date: '2026-10-18', note: '' }, TODAY)),
+      Object.keys(
+        validateExpense({ amount: '', category: '', date: '2026-10-18', note: '' }, TODAY),
+      ),
     ).toEqual(['amount', 'category', 'date'])
   })
 })
 
 describe('toExpenseInput', () => {
   it('converts the amount, maps the category and trims the note', () => {
-    expect(toExpenseInput({ amount: '65000', category: 'food', date: TODAY, note: '  Phở bò  ' })).toEqual({
+    expect(
+      toExpenseInput({ amount: '65000', category: 'food', date: TODAY, note: '  Phở bò  ' }),
+    ).toEqual({
       amount: 65000,
       category_id: 'food',
       date: TODAY,
@@ -65,6 +77,61 @@ describe('toExpenseInput', () => {
   })
 
   it('sends a blank note as null', () => {
-    expect(toExpenseInput({ amount: '1', category: 'other', date: TODAY, note: '   ' }).note).toBeNull()
+    expect(
+      toExpenseInput({ amount: '1', category: 'other', date: TODAY, note: '   ' }).note,
+    ).toBeNull()
+  })
+})
+
+describe('validateBudget', () => {
+  const draft = (monthly: string, categories: BudgetDraft['categories'] = {}): BudgetDraft => ({
+    monthly,
+    categories,
+  })
+
+  it('accepts a monthly budget alone, and categories that fit', () => {
+    expect(validateBudget(draft('15000000'))).toEqual({})
+    expect(validateBudget(draft('1000', { food: '600', bills: '400' }))).toEqual({})
+  })
+
+  it('treats an empty category as no budget', () => {
+    expect(validateBudget(draft('1000', { food: '' }))).toEqual({})
+  })
+
+  it('requires a monthly budget above 0 and within the limit', () => {
+    expect(validateBudget(draft('')).monthly).toBe('Enter a monthly budget.')
+    expect(validateBudget(draft('0')).monthly).toBe('Monthly budget must be greater than 0 ₫.')
+    expect(validateBudget(draft('1000000001')).monthly).toContain('1.000.000.000')
+    expect(validateBudget(draft('1000000000'))).toEqual({})
+  })
+
+  it('rejects a category budget of 0 or over the limit', () => {
+    expect(validateBudget(draft('1000', { food: '0' })).categories?.food).toBe(
+      'Category budget must be greater than 0 ₫.',
+    )
+    expect(validateBudget(draft('1000', { food: '1000000001' })).categories?.food).toContain(
+      '1.000.000.000',
+    )
+  })
+
+  it('rejects categories adding up to more than the monthly budget', () => {
+    expect(validateBudget(draft('1000', { food: '600', bills: '401' })).total).toBe(
+      'Category budgets add up to more than the monthly budget.',
+    )
+  })
+
+  it('skips the total check while the monthly budget is invalid', () => {
+    expect(validateBudget(draft('', { food: '600' })).total).toBeUndefined()
+  })
+})
+
+describe('toBudgetInput', () => {
+  it('drops empty categories and converts to numbers', () => {
+    expect(
+      toBudgetInput({ monthly: '15000000', categories: { food: '4500000', bills: '' } }),
+    ).toEqual({
+      monthly: 15_000_000,
+      categories: { food: 4_500_000 },
+    })
   })
 })

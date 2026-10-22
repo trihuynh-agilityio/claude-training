@@ -22,6 +22,7 @@ function summary(overrides: Partial<MonthlySummary> = {}): MonthlySummary {
       { category_id: 'bills', total: 750_000, count: 1 },
       { category_id: 'food', total: 250_000, count: 1 },
     ],
+    budget: null,
     ...overrides,
   }
 }
@@ -50,6 +51,7 @@ const handlers = {
   onEdit: vi.fn(),
   onDelete: vi.fn(),
   onViewAll: vi.fn(),
+  onOpenBudget: vi.fn(),
   onRetry: vi.fn(),
 }
 
@@ -210,5 +212,86 @@ describe('DashboardPage', () => {
     await userEvent.setup().click(await screen.findByRole('button', { name: 'View all' }))
 
     expect(handlers.onViewAll).toHaveBeenCalled()
+  })
+
+  describe('budget', () => {
+    const budget = (overrides = {}) => ({
+      month: OCTOBER,
+      source_month: OCTOBER,
+      is_own: true,
+      monthly: 2_000_000,
+      categories: {},
+      ...overrides,
+    })
+
+    it('shows remaining, safe per day, and the status for the current month', async () => {
+      // 1.000.000 spent of 2.000.000 on 21 Oct: 10 days left, 1.000.000 / 10 = 100.000 a day.
+      mockGetSummary.mockResolvedValue(summary({ budget: budget() }))
+      renderPage()
+
+      expect(await screen.findByText('Remaining budget')).toBeInTheDocument()
+      expect(screen.getByText('On track')).toBeInTheDocument()
+      expect(screen.getByText(/50% of 2\.000\.000/)).toBeInTheDocument()
+      expect(screen.getByText('Safe to spend per day')).toBeInTheDocument()
+      expect(screen.getByText(/100\.000/)).toBeInTheDocument()
+      expect(screen.getByText('10 days left')).toBeInTheDocument()
+      expect(screen.getByRole('progressbar', { name: 'Budget used' })).toHaveAttribute(
+        'aria-valuenow',
+        '50',
+      )
+    })
+
+    it('shows the amount over and Over budget once spending passes the budget', async () => {
+      mockGetSummary.mockResolvedValue(summary({ budget: budget({ monthly: 800_000 }) }))
+      renderPage()
+
+      expect(await screen.findByText('Over budget by')).toBeInTheDocument()
+      expect(screen.getByText('Over budget')).toBeInTheDocument()
+      expect(screen.getByText(/200\.000/)).toBeInTheDocument()
+      expect(screen.getByText(/125% of/)).toBeInTheDocument()
+    })
+
+    it('hides Safe to spend for a month that is not the current one', async () => {
+      mockGetSummary.mockImplementation((month) =>
+        Promise.resolve(summary({ month, budget: budget({ month }) })),
+      )
+      renderPage()
+      await screen.findByText('Safe to spend per day')
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Previous month' }))
+
+      expect(await screen.findByText('Spent in September 2026')).toBeInTheDocument()
+      expect(screen.getByText('Remaining budget')).toBeInTheDocument()
+      expect(screen.queryByText('Safe to spend per day')).not.toBeInTheDocument()
+    })
+
+    it('says where an inherited budget comes from', async () => {
+      mockGetSummary.mockResolvedValue(
+        summary({ budget: budget({ is_own: false, source_month: '2026-09' }) }),
+      )
+      renderPage()
+
+      expect(await screen.findByText(/budget from September 2026/)).toBeInTheDocument()
+    })
+
+    it('invites the user to set a budget when there is none', async () => {
+      mockGetSummary.mockResolvedValue(summary())
+      renderPage()
+
+      await userEvent
+        .setup()
+        .click(await screen.findByRole('button', { name: 'Set a monthly budget' }))
+
+      expect(handlers.onOpenBudget).toHaveBeenCalled()
+    })
+
+    it('invites the user to set a budget in an empty current month too', async () => {
+      mockGetSummary.mockResolvedValue(empty(OCTOBER))
+      renderPage()
+
+      expect(
+        await screen.findByRole('button', { name: 'Set a monthly budget' }),
+      ).toBeInTheDocument()
+    })
   })
 })
