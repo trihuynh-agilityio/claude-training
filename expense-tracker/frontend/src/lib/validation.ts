@@ -1,5 +1,5 @@
-import type { ExpenseInput } from '../types'
-import { isCategoryId } from './categories'
+import type { BudgetInput, ExpenseInput } from '../types'
+import { CATEGORIES, isCategoryId, type CategoryId } from './categories'
 import { todayISO } from './dates'
 
 export const MAX_AMOUNT = 1_000_000_000
@@ -40,4 +40,51 @@ export function toExpenseInput(draft: ExpenseDraft): ExpenseInput {
     date: draft.date,
     note: draft.note.trim() || null,
   }
+}
+
+/** The budget form's raw values: digits only, as typed. An empty category has no budget. */
+export type BudgetDraft = { monthly: string; categories: Partial<Record<CategoryId, string>> }
+
+export type BudgetErrors = {
+  monthly?: string
+  categories?: Partial<Record<CategoryId, string>>
+  /** The category budgets together exceed the monthly budget. */
+  total?: string
+}
+
+const OVER_LIMIT = 'That’s more than 1.000.000.000 ₫ — please check the amount.'
+
+/** Mirrors the backend rules; the API stays the authority. */
+export function validateBudget(draft: BudgetDraft): BudgetErrors {
+  const errors: BudgetErrors = {}
+  const monthly = Number(draft.monthly)
+
+  if (draft.monthly === '') errors.monthly = 'Enter a monthly budget.'
+  else if (monthly === 0) errors.monthly = 'Monthly budget must be greater than 0 ₫.'
+  else if (monthly > MAX_AMOUNT) errors.monthly = OVER_LIMIT
+
+  let allocated = 0
+  for (const { id } of CATEGORIES) {
+    const text = draft.categories[id] ?? ''
+    if (text === '') continue
+    const amount = Number(text)
+    allocated += amount
+    if (amount === 0) (errors.categories ??= {})[id] = 'Category budget must be greater than 0 ₫.'
+    else if (amount > MAX_AMOUNT) (errors.categories ??= {})[id] = OVER_LIMIT
+  }
+
+  if (!errors.monthly && allocated > monthly)
+    errors.total = 'Category budgets add up to more than the monthly budget.'
+
+  return errors
+}
+
+/** Call only on a draft that passed validateBudget. */
+export function toBudgetInput(draft: BudgetDraft): BudgetInput {
+  const categories: BudgetInput['categories'] = {}
+  for (const { id } of CATEGORIES) {
+    const text = draft.categories[id] ?? ''
+    if (text !== '') categories[id] = Number(text)
+  }
+  return { monthly: Number(draft.monthly), categories }
 }

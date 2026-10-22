@@ -25,4 +25,21 @@ export type MonthlySummary = {
   /** Spent in the month before, up to the same day of the month. */
   same_day_last_month_total: number
   categories: CategoryTotal[]
+  /** The budget in force for the month, or null when no month up to it has one. */
+  budget: Budget | null
+}
+
+/** A month's budget in whole đồng; category budgets are optional. */
+export type BudgetInput = {
+  monthly: number
+  categories: Partial<Record<CategoryId, number>>
+}
+
+/** `GET /api/budgets`: the budget in force for `month`, which may come from an earlier month. */
+export type Budget = BudgetInput & {
+  month: string
+  /** The month the budget was saved for. */
+  source_month: string
+  /** True when `month` has a budget of its own rather than an inherited one. */
+  is_own: boolean
 }
