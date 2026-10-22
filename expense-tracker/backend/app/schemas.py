@@ -2,7 +2,7 @@ from datetime import date as Date
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, StrictInt, field_validator
+from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
 
 MAX_AMOUNT = 1_000_000_000
 MAX_NOTE_LENGTH = 120
@@ -49,6 +49,30 @@ class CategoryTotal(BaseModel):
     count: int
 
 
+Amount = Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
+
+
+class BudgetIn(BaseModel):
+    """A month's budget: one monthly amount and an optional amount per category."""
+
+    monthly: Amount
+    categories: dict[CategoryId, Amount] = {}
+
+    @model_validator(mode="after")
+    def categories_fit_in_monthly(self) -> "BudgetIn":
+        if sum(self.categories.values()) > self.monthly:
+            raise ValueError("Category budgets add up to more than the monthly budget.")
+        return self
+
+
+class Budget(BudgetIn):
+    """The budget in force for `month`; `source_month` is the month it was saved for."""
+
+    month: str
+    source_month: str
+    is_own: bool
+
+
 class MonthlySummary(BaseModel):
     """Spending for one month, with the same-day comparison against the month before."""
 
@@ -57,3 +81,4 @@ class MonthlySummary(BaseModel):
     count: int
     same_day_last_month_total: int
     categories: list[CategoryTotal]
+    budget: Budget | None = None

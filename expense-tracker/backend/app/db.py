@@ -16,6 +16,24 @@ CREATE TABLE IF NOT EXISTS expenses (
 )
 """
 
+# A month with no row in monthly_budgets has no budget of its own (it inherits an earlier one).
+BUDGET_SCHEMA = [
+    """
+    CREATE TABLE IF NOT EXISTS monthly_budgets (
+        month TEXT PRIMARY KEY,
+        amount INTEGER NOT NULL CHECK (amount > 0)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS category_budgets (
+        month TEXT NOT NULL REFERENCES monthly_budgets (month),
+        category_id TEXT NOT NULL,
+        amount INTEGER NOT NULL CHECK (amount > 0),
+        PRIMARY KEY (month, category_id)
+    )
+    """,
+]
+
 # Databases created before categories existed lack the column; their rows become "other".
 ADD_CATEGORY_COLUMN = (
     "ALTER TABLE expenses ADD COLUMN category_id TEXT NOT NULL DEFAULT 'other'"
@@ -39,6 +57,8 @@ def connect() -> sqlite3.Connection:
 def init_db() -> None:
     with connect() as conn:
         conn.execute(SCHEMA)
+        for statement in BUDGET_SCHEMA:
+            conn.execute(statement)
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(expenses)")}
         if "category_id" not in columns:
             conn.execute(ADD_CATEGORY_COLUMN)

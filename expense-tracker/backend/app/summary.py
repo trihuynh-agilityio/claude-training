@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
+from app.budgets import budget_in_force
 from app.db import get_connection
 from app.schemas import CategoryTotal, MonthlySummary
 
@@ -85,4 +86,5 @@ def monthly_summary(
         count=sum(c.count for c in categories),
         same_day_last_month_total=previous_total,
         categories=categories,
+        budget=budget_in_force(conn, month),
     )

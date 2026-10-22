@@ -29,6 +29,7 @@ def test_empty_month(client):
         "count": 0,
         "same_day_last_month_total": 0,
         "categories": [],
+        "budget": None,
     }
 
 
@@ -175,3 +176,25 @@ def test_unsupported_or_malformed_month_is_rejected(client, month):
 )
 def test_unsupported_or_malformed_today_is_rejected(client, today):
     assert get_summary(client, today=today).status_code == 422
+
+
+def test_summary_carries_the_budget_in_force(client):
+    client.put(
+        "/api/budgets/2026-10",
+        params={"today": NOW},
+        json={"monthly": 15_000_000, "categories": {"food": 4_500_000}},
+    )
+
+    own = summary(client, "2026-10")["budget"]
+    inherited = summary(client, "2026-11")["budget"]
+
+    assert own == {
+        "month": "2026-10",
+        "source_month": "2026-10",
+        "is_own": True,
+        "monthly": 15_000_000,
+        "categories": {"food": 4_500_000},
+    }
+    assert inherited["source_month"] == "2026-10"
+    assert inherited["is_own"] is False
+    assert summary(client, "2026-09")["budget"] is None
