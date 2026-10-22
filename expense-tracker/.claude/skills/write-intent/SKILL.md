@@ -50,11 +50,13 @@ Line 1 is `# Intent: ` plus the change name in sentence case (`# Intent: Monthly
 
 - **Problem**: who hurts, when, and what it costs them today. Facts from the request or the repo only.
 - **Proposed outcome**: what is true once the change lands, seen from the user's side. State results, not implementation.
-- **Affected users and systems**: the people and the parts of the app it touches (for example services, screens, data stores, docs).
-- **Constraints**: limits that are already decided, such as fixed technology, formats, deadlines, or rules named in the project's `CLAUDE.md`.
+- **Affected users and systems**: the people and the parts of the app it touches, named in plain words (for example "the Dashboard", "the API", "the stored data"), not as files or modules.
+- **Constraints**: limits on the outcome that are already decided, such as scope cuts, deadlines, or rules the user must see enforced.
 - **Open questions**: everything you had to guess or could not learn. Write each as a question. If nothing is open, write `None.`.
 
 Never invent facts to fill a section. A thin section with an open question beats a confident guess.
+
+Keep implementation out of every section. That means branches, the git or test workflow, file names and paths, the tech stack, and routes, tables or parameters. Refer to the design spec or the app in plain words instead. Exact values that a spec already holds, such as thresholds and limits, stay in the spec and the intent points to it.
 
 ## 5. Finish
 
