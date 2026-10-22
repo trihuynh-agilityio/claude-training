@@ -151,6 +151,23 @@ describe('BudgetPage', () => {
     expect(await screen.findByRole('button', { name: 'Set a monthly budget' })).toBeInTheDocument()
   })
 
+  it('locks the month switcher while a save is in flight', async () => {
+    mockGetSummary.mockResolvedValue(summary())
+    let finish!: (value: Budget) => void
+    mockSaveBudget.mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    renderPage()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Set a monthly budget' }))
+    await user.type(screen.getByLabelText('Monthly budget'), '1000')
+
+    await user.click(screen.getByRole('button', { name: 'Save budget' }))
+
+    expect(screen.getByRole('button', { name: 'Next month' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Previous month' })).toBeDisabled()
+    finish(budget())
+    expect(await screen.findByRole('button', { name: 'Previous month' })).toBeEnabled()
+  })
+
   describe('editing', () => {
     async function openForm() {
       mockGetSummary.mockResolvedValue(summary())

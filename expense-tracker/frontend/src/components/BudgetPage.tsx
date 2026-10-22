@@ -120,6 +120,7 @@ export function BudgetPage({ version, onSaved }: Props) {
               className="icon-btn"
               type="button"
               aria-label="Previous month"
+              disabled={saving}
               onClick={() => changeMonth(shiftMonth(month, -1))}
             >
               <ChevronLeftIcon />
@@ -131,7 +132,7 @@ export function BudgetPage({ version, onSaved }: Props) {
               className="icon-btn"
               type="button"
               aria-label="Next month"
-              disabled={month >= shiftMonth(thisMonth, 1)}
+              disabled={saving || month >= shiftMonth(thisMonth, 1)}
               onClick={() => changeMonth(shiftMonth(month, 1))}
             >
               <ChevronRightIcon />

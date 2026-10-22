@@ -29,9 +29,20 @@ describe('remaining', () => {
 })
 
 describe('percentUsed', () => {
-  it('rounds to a whole percent', () => {
+  it('gives whole percents', () => {
     expect(percentUsed(10_400_000, 15_000_000)).toBe(69)
     expect(percentUsed(0, 1000)).toBe(0)
+  })
+
+  it('never contradicts the status badge at a boundary', () => {
+    // 84.6% is still On track, so it must not read 85%.
+    expect(percentUsed(8460, 10000)).toBe(84)
+    expect(budgetStatus(8460, 10000)).toBe('on-track')
+    expect(percentUsed(8500, 10000)).toBe(85)
+    expect(percentUsed(10000, 10000)).toBe(100)
+    // 100.4% is Over budget, so it must not read 100%.
+    expect(percentUsed(10040, 10000)).toBe(101)
+    expect(budgetStatus(10040, 10000)).toBe('over-budget')
   })
 })
 

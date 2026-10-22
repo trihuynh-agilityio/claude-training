@@ -19,8 +19,14 @@ export function remaining(budget: number, spent: number): number {
   return budget - spent
 }
 
+/**
+ * Whole percent used, never rounded across a status boundary: 84.6% reads 84 (On track) and
+ * anything above 100% reads at least 101 (Over budget), so the number never contradicts the badge.
+ */
 export function percentUsed(spent: number, budget: number): number {
-  return budget > 0 ? Math.round((spent / budget) * 100) : 0
+  if (budget <= 0) return 0
+  const percent = (spent / budget) * 100
+  return spent > budget ? Math.ceil(percent) : Math.floor(percent)
 }
 
 /** Days after `today` (YYYY-MM-DD) until the end of its month. */
