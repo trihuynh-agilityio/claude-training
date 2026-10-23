@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
 Connection = Annotated[sqlite3.Connection, Depends(get_connection)]
 
-COLUMNS = "id, amount, category_id, date, note, created_at"
+COLUMNS = "id, amount, category_id, date, note, created_at, recurring_id"
 
 
 def fetch_expense(conn: sqlite3.Connection, expense_id: int) -> Expense:
