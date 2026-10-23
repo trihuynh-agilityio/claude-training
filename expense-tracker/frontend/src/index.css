@@ -154,6 +154,12 @@ input {
   gap: 16px;
 }
 
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .page-title {
   font-size: 28px;
   font-weight: 700;
@@ -862,7 +868,7 @@ input {
     font-size: 24px;
   }
 
-  .page-header .btn-primary {
+  .page-actions .btn-primary {
     display: none;
   }
 

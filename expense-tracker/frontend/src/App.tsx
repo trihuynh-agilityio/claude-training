@@ -133,6 +133,7 @@ function App() {
           onEdit={(expense) => setForm({ mode: 'edit', expense })}
           onDelete={askDelete}
           onRetry={retry}
+          onExported={setToast}
         />
       )}
 

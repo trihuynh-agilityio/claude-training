@@ -113,3 +113,9 @@ export const TargetIcon = ({ size }: IconProps) => (
     <circle cx="12" cy="12" r="1" />
   </Svg>
 )
+
+export const DownloadIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size} strokeWidth={2}>
+    <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+  </Svg>
+)
