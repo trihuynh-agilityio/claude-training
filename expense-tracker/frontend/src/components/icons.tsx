@@ -113,3 +113,21 @@ export const TargetIcon = ({ size }: IconProps) => (
     <circle cx="12" cy="12" r="1" />
   </Svg>
 )
+
+export const RepeatIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3" />
+  </Svg>
+)
+
+export const PauseIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M8 5v14M16 5v14" />
+  </Svg>
+)
+
+export const PlayIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M7 4l13 8-13 8z" />
+  </Svg>
+)

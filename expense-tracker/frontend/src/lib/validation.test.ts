@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   toBudgetInput,
   toExpenseInput,
+  toRecurringInput,
   validateBudget,
   validateExpense,
+  validateRecurring,
   type BudgetDraft,
   type ExpenseDraft,
+  type RecurringDraft,
 } from './validation'
 
 const TODAY = '2026-10-16'
@@ -132,6 +135,65 @@ describe('toBudgetInput', () => {
     ).toEqual({
       monthly: 15_000_000,
       categories: { food: 4_500_000 },
+    })
+  })
+})
+
+describe('validateRecurring', () => {
+  const rule: RecurringDraft = {
+    amount: '5000000',
+    category: 'bills',
+    note: 'Rent',
+    day: '1',
+    startDate: '2026-08-01',
+    endDate: '',
+  }
+  const checkRule = (overrides: Partial<RecurringDraft>) =>
+    validateRecurring({ ...rule, ...overrides }, TODAY)
+
+  it('accepts a valid rule', () => {
+    expect(checkRule({})).toEqual({})
+  })
+
+  it('uses the expense messages for amount, category and note', () => {
+    expect(checkRule({ amount: '' }).amount).toBe('Enter an amount.')
+    expect(checkRule({ amount: '0' }).amount).toBe('Amount must be greater than 0 ₫.')
+    expect(checkRule({ category: '' }).category).toBe('Choose a category.')
+    expect(checkRule({ note: 'x'.repeat(121) }).note).toContain('120')
+  })
+
+  it('wants a day from 1 to 31', () => {
+    for (const day of ['', '0', '32'])
+      expect(checkRule({ day }).day).toBe('Enter a day from 1 to 31.')
+    expect(checkRule({ day: '31' }).day).toBeUndefined()
+  })
+
+  it('wants a start date no more than 24 months back', () => {
+    expect(checkRule({ startDate: '' }).startDate).toBe('Pick a start date.')
+    expect(checkRule({ startDate: '2024-09-30' }).startDate).toBe(
+      'Start date can’t be more than 24 months ago.',
+    )
+    expect(checkRule({ startDate: '2024-10-16' }).startDate).toBeUndefined()
+    expect(
+      validateRecurring({ ...rule, startDate: '2020-01-01' }, TODAY, false).startDate,
+    ).toBeUndefined()
+  })
+
+  it('rejects an end date before the start date', () => {
+    expect(checkRule({ endDate: '2026-07-31' }).endDate).toBe(
+      'End date can’t be before the start date.',
+    )
+    expect(checkRule({ endDate: '2026-08-01' }).endDate).toBeUndefined()
+  })
+
+  it('converts a draft to the API input', () => {
+    expect(toRecurringInput({ ...rule, note: ' Rent ' })).toEqual({
+      amount: 5_000_000,
+      category_id: 'bills',
+      note: 'Rent',
+      day: 1,
+      start_date: '2026-08-01',
+      end_date: null,
     })
   })
 })
