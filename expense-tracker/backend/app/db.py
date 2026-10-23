@@ -34,6 +34,25 @@ BUDGET_SCHEMA = [
     """,
 ]
 
+# A rule adds at most one expense per month; last_generated is the last occurrence it handled.
+RECURRING_SCHEMA = """
+CREATE TABLE IF NOT EXISTS recurring_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount INTEGER NOT NULL CHECK (amount > 0),
+    category_id TEXT NOT NULL,
+    note TEXT,
+    day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 31),
+    start_date TEXT NOT NULL,
+    end_date TEXT,
+    paused INTEGER NOT NULL DEFAULT 0,
+    last_generated TEXT,
+    created_at TEXT NOT NULL
+)
+"""
+
+# Databases created before recurring rules existed lack the link; their rows get NULL.
+ADD_RECURRING_COLUMN = "ALTER TABLE expenses ADD COLUMN recurring_id INTEGER"
+
 # Databases created before categories existed lack the column; their rows become "other".
 ADD_CATEGORY_COLUMN = (
     "ALTER TABLE expenses ADD COLUMN category_id TEXT NOT NULL DEFAULT 'other'"
@@ -59,9 +78,12 @@ def init_db() -> None:
         conn.execute(SCHEMA)
         for statement in BUDGET_SCHEMA:
             conn.execute(statement)
+        conn.execute(RECURRING_SCHEMA)
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(expenses)")}
         if "category_id" not in columns:
             conn.execute(ADD_CATEGORY_COLUMN)
+        if "recurring_id" not in columns:
+            conn.execute(ADD_RECURRING_COLUMN)
     conn.close()
 
 

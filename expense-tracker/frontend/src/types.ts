@@ -10,6 +10,8 @@ export type Expense = {
   date: string
   note: string | null
   created_at: string
+  /** The recurring rule that added this expense, if any. */
+  recurring_id?: number | null
 }
 
 /** The fields sent to create or replace an expense. */
@@ -42,4 +44,25 @@ export type Budget = BudgetInput & {
   source_month: string
   /** True when `month` has a budget of its own rather than an inherited one. */
   is_own: boolean
+}
+
+/** The fields sent to create or replace a recurring rule. */
+export type RecurringInput = {
+  amount: number
+  category_id: CategoryId
+  note: string | null
+  /** Day of the month, 1 to 31; short months use their last day. */
+  day: number
+  start_date: string
+  end_date: string | null
+}
+
+/** A monthly rule as returned by `/api/recurring`. */
+export type Recurring = RecurringInput & {
+  id: number
+  paused: boolean
+  /** The last occurrence the rule handled; null until it has added something. */
+  last_generated: string | null
+  /** Null when paused or ended. */
+  next_due: string | null
 }

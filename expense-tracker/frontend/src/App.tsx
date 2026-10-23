@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
+import { generateRecurring } from './api/recurring'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from './api/expenses'
 import { AppShell, type View } from './components/AppShell'
 import { BudgetPage } from './components/BudgetPage'
 import { DashboardPage } from './components/DashboardPage'
 import { ConfirmDeleteDialog } from './components/ConfirmDeleteDialog'
 import { ExpenseFormDialog } from './components/ExpenseFormDialog'
+import { RecurringPage } from './components/RecurringPage'
 import { Toast } from './components/Toast'
 import { TransactionsPage, type LoadStatus } from './components/TransactionsPage'
+import { todayISO } from './lib/dates'
 import type { Expense, ExpenseInput } from './types'
 
 /** Only show the skeleton if loading takes longer than this, to avoid a flash. */
@@ -43,15 +46,23 @@ function App() {
 
   useEffect(() => {
     let ignore = false
+    // Add due recurring expenses first, so the list (and the Dashboard) already include them.
+    // A failed catch-up never blocks loading; it shows a toast instead.
     // State is set only after the request settles, never synchronously here.
-    listExpenses().then(
-      (data) => {
-        if (ignore) return
-        setExpenses(data)
-        setStatus('ready')
-      },
-      () => !ignore && setStatus('error'),
-    )
+    generateRecurring(todayISO())
+      .then(
+        () => undefined,
+        () => !ignore && setToast('Couldn’t add recurring expenses. Try again later.'),
+      )
+      .then(() => listExpenses())
+      .then(
+        (data) => {
+          if (ignore) return
+          setExpenses(data)
+          setStatus('ready')
+        },
+        () => !ignore && setStatus('error'),
+      )
     return () => {
       ignore = true
     }
@@ -124,6 +135,14 @@ function App() {
         />
       ) : view === 'budget' ? (
         <BudgetPage version={version} onSaved={setToast} />
+      ) : view === 'recurring' ? (
+        <RecurringPage
+          onChanged={() => {
+            bumpVersion()
+            void load()
+          }}
+          onToast={setToast}
+        />
       ) : (
         <TransactionsPage
           expenses={expenses}

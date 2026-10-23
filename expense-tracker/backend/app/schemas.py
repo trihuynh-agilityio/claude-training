@@ -13,21 +13,14 @@ CategoryId = Literal[
 ]
 
 
-class ExpenseIn(BaseModel):
-    """Fields a client sends to create or replace an expense."""
+class ExpenseBase(BaseModel):
+    """Fields shared by what a client sends and what is stored."""
 
     # Whole đồng: VND has no minor unit, so floats and strings are rejected.
     amount: Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
     category_id: CategoryId
     date: Date
     note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
-
-    @field_validator("date")
-    @classmethod
-    def date_not_in_future(cls, value: Date) -> Date:
-        if value > Date.today():
-            raise ValueError("Date can't be in the future.")
-        return value
 
     @field_validator("note", mode="before")
     @classmethod
@@ -38,9 +31,22 @@ class ExpenseIn(BaseModel):
         return value
 
 
-class Expense(ExpenseIn):
+class ExpenseIn(ExpenseBase):
+    """Fields a client sends to create or replace an expense."""
+
+    @field_validator("date")
+    @classmethod
+    def date_not_in_future(cls, value: Date) -> Date:
+        if value > Date.today():
+            raise ValueError("Date can't be in the future.")
+        return value
+
+
+class Expense(ExpenseBase):
+    # Not ExpenseIn: a rule may add an expense dated today in a client ahead of the server clock.
     id: int
     created_at: datetime
+    recurring_id: int | None = None
 
 
 class CategoryTotal(BaseModel):
@@ -50,6 +56,42 @@ class CategoryTotal(BaseModel):
 
 
 Amount = Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
+
+
+class RecurringIn(BaseModel):
+    """A monthly rule. Amount, category and note follow the rules of ExpenseIn."""
+
+    amount: Amount
+    category_id: CategoryId
+    note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
+    day: Annotated[StrictInt, Field(ge=1, le=31)]
+    start_date: Date
+    end_date: Date | None = None
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def blank_note_is_none(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
+
+    @model_validator(mode="after")
+    def end_not_before_start(self) -> "RecurringIn":
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError("End date can't be before the start date.")
+        return self
+
+
+class Recurring(RecurringIn):
+    id: int
+    paused: bool
+    last_generated: Date | None = None
+    next_due: Date | None = None
+
+
+class PausedIn(BaseModel):
+    paused: bool
 
 
 class BudgetIn(BaseModel):
