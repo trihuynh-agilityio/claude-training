@@ -1338,3 +1338,34 @@ input {
     min-width: 0;
   }
 }
+
+/* Recurring expenses (phase 7) */
+.recurring-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.recurring-due {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .bottom-bar {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .recurring-row .row-actions .danger {
+    display: inline-flex;
+  }
+}

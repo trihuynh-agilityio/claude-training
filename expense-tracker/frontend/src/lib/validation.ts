@@ -1,6 +1,7 @@
-import type { BudgetInput, ExpenseInput } from '../types'
+import type { BudgetInput, ExpenseInput, RecurringInput } from '../types'
 import { CATEGORIES, isCategoryId, type CategoryId } from './categories'
 import { todayISO } from './dates'
+import { earliestStart } from './recurring'
 
 export const MAX_AMOUNT = 1_000_000_000
 export const MAX_NOTE_LENGTH = 120
@@ -87,4 +88,60 @@ export function toBudgetInput(draft: BudgetDraft): BudgetInput {
     if (text !== '') categories[id] = Number(text)
   }
   return { monthly: Number(draft.monthly), categories }
+}
+
+/** The recurring form's raw values: amount and day hold digits only, as typed. */
+export type RecurringDraft = {
+  amount: string
+  category: string
+  note: string
+  day: string
+  startDate: string
+  endDate: string
+}
+
+export type RecurringField = keyof RecurringDraft
+export type RecurringErrors = Partial<Record<RecurringField, string>>
+
+/**
+ * Mirrors the backend rules. Amount, category and note use the expense rules; the start date
+ * is checked against the 24-month limit only when `checkStart` is true (a locked one is not).
+ */
+export function validateRecurring(
+  draft: RecurringDraft,
+  today: string = todayISO(),
+  checkStart = true,
+): RecurringErrors {
+  const { amount, category, note } = validateExpense(
+    { amount: draft.amount, category: draft.category, note: draft.note, date: today },
+    today,
+  )
+  const errors: RecurringErrors = {}
+  if (amount) errors.amount = amount
+  if (category) errors.category = category
+  if (note) errors.note = note
+
+  const day = Number(draft.day)
+  if (draft.day === '' || day < 1 || day > 31) errors.day = 'Enter a day from 1 to 31.'
+
+  if (draft.startDate === '') errors.startDate = 'Pick a start date.'
+  else if (checkStart && draft.startDate < earliestStart(today))
+    errors.startDate = 'Start date can’t be more than 24 months ago.'
+
+  if (draft.endDate !== '' && draft.startDate !== '' && draft.endDate < draft.startDate)
+    errors.endDate = 'End date can’t be before the start date.'
+
+  return errors
+}
+
+/** Call only on a draft that passed validateRecurring. */
+export function toRecurringInput(draft: RecurringDraft): RecurringInput {
+  return {
+    amount: Number(draft.amount),
+    category_id: draft.category as RecurringInput['category_id'],
+    note: draft.note.trim() || null,
+    day: Number(draft.day),
+    start_date: draft.startDate,
+    end_date: draft.endDate || null,
+  }
 }

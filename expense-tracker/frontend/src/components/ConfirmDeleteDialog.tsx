@@ -7,15 +7,31 @@ import { CategoryTile } from './CategoryTile'
 import { AlertIcon, TrashIcon } from './icons'
 import { useModalDialog } from './useModalDialog'
 
+/** What the dialog summarizes: an expense, or a recurring rule (which has no single date). */
+type Summary = Pick<Expense, 'category_id' | 'note' | 'amount'> & { date?: string; meta?: string }
+
 type Props = {
-  expense: Expense
+  expense: Summary
+  /** Overrides for deleting something other than an expense. */
+  title?: string
+  description?: string
+  confirmLabel?: string
   busy: boolean
   error: string | null
   onConfirm: () => void
   onCancel: () => void
 }
 
-export function ConfirmDeleteDialog({ expense, busy, error, onConfirm, onCancel }: Props) {
+export function ConfirmDeleteDialog({
+  expense,
+  title = 'Delete this expense?',
+  description = 'It will be removed from your totals. This can’t be undone.',
+  confirmLabel = 'Delete expense',
+  busy,
+  error,
+  onConfirm,
+  onCancel,
+}: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null)
   // Cancel gets focus, so pressing Enter never deletes by accident.
   const dialogRef = useModalDialog(cancelRef)
@@ -38,10 +54,10 @@ export function ConfirmDeleteDialog({ expense, busy, error, onConfirm, onCancel 
         </span>
         <div>
           <h2 className="state-title" id="delete-title" style={{ marginBottom: 6 }}>
-            Delete this expense?
+            {title}
           </h2>
           <p className="state-text" id="delete-desc">
-            It will be removed from your totals. This can’t be undone.
+            {description}
           </p>
         </div>
         <div className="confirm-summary">
@@ -49,7 +65,9 @@ export function ConfirmDeleteDialog({ expense, busy, error, onConfirm, onCancel 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 500 }}>{expense.note ?? 'No note'}</div>
             <div className="confirm-meta">
-              {getCategory(expense.category_id).name} · {formatShortDate(expense.date)}
+              {getCategory(expense.category_id).name}
+              {expense.date && ` · ${formatShortDate(expense.date)}`}
+              {expense.meta && ` · ${expense.meta}`}
             </div>
           </div>
           <span className="num" style={{ fontWeight: 600 }}>
@@ -67,7 +85,7 @@ export function ConfirmDeleteDialog({ expense, busy, error, onConfirm, onCancel 
             Cancel
           </button>
           <button className="btn btn-danger" type="button" onClick={onConfirm} disabled={busy}>
-            {busy ? 'Deleting…' : 'Delete expense'}
+            {busy ? 'Deleting…' : confirmLabel}
           </button>
         </div>
       </div>

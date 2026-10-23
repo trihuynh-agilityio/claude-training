@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import '../test/setup'
 import { AppShell } from './AppShell'
 
-function setup(view: 'dashboard' | 'transactions' | 'budget' = 'dashboard') {
+function setup(view: 'dashboard' | 'transactions' | 'budget' | 'recurring' = 'dashboard') {
   const onNavigate = vi.fn()
   const onAdd = vi.fn()
   render(

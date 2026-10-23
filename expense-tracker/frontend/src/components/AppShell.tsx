@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { HomeIcon, ListIcon, LogoIcon, PlusIcon, TargetIcon } from './icons'
+import { HomeIcon, ListIcon, LogoIcon, PlusIcon, RepeatIcon, TargetIcon } from './icons'
 
-export type View = 'dashboard' | 'transactions' | 'budget'
+export type View = 'dashboard' | 'transactions' | 'budget' | 'recurring'
 
 type Props = {
   view: View
@@ -14,6 +14,7 @@ const NAV: { view: View; label: string; Icon: typeof ListIcon }[] = [
   { view: 'dashboard', label: 'Dashboard', Icon: HomeIcon },
   { view: 'transactions', label: 'Transactions', Icon: ListIcon },
   { view: 'budget', label: 'Budget', Icon: TargetIcon },
+  { view: 'recurring', label: 'Recurring', Icon: RepeatIcon },
 ]
 
 export function AppShell({ view, onNavigate, onAdd, children }: Props) {
@@ -57,6 +58,7 @@ export function AppShell({ view, onNavigate, onAdd, children }: Props) {
           <PlusIcon size={26} />
         </button>
         {navLink(NAV[2], 22)}
+        {navLink(NAV[3], 22)}
       </nav>
     </div>
   )
