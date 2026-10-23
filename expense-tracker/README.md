@@ -12,7 +12,7 @@ A simple personal expense tracker for recording daily expenses and understanding
 - **Monthly summaries:** view total spending per month, broken down by category
 - **Budgets:** set a monthly budget and track spending against it
 - **CSV export:** download the filtered Transactions list as a CSV file (planned, see `intent/2026-10-23-csv-export/`)
-- **Recurring expenses:** monthly rules that add expenses on their own (planned, see `intent/2026-10-23-recurring-expenses/`)
+- **Recurring expenses:** monthly rules that add expenses on their own (see `intent/2026-10-23-recurring-expenses/`)
 
 ## Tech Stack
 
@@ -93,7 +93,7 @@ Each phase should be small, usable on its own, and build on the one before.
 4. **Phase 4: Monthly summaries.** Show monthly totals and a per-category breakdown.
 5. **Phase 5: Budgets.** Set monthly budgets and show remaining or overspent amounts.
 6. **Phase 6: CSV export.** Download the expenses on the Transactions screen, as filtered, as a CSV file. Frontend only. Intent, spec and plan are in `intent/2026-10-23-csv-export/`; not built yet.
-7. **Phase 7: Recurring expenses.** Monthly rules (amount, category, note, day of month, start and optional end date) that add the due expenses when the app is opened, up to today, and can be paused. A new Recurring screen manages them, and added expenses carry a "Recurring" badge in Transactions. Intent, spec and plan are in `intent/2026-10-23-recurring-expenses/`; not built yet.
+7. **Phase 7: Recurring expenses.** Monthly rules (amount, category, note, day of month, start and optional end date) that add the due expenses when the app is opened, up to today, and can be paused. A new Recurring screen manages them, and added expenses carry a "Recurring" badge in Transactions. Intent, spec and plan are in `intent/2026-10-23-recurring-expenses/`. Built.
 
 ## Project Goals
 
