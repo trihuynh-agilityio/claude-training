@@ -85,9 +85,9 @@ Give every amount `font-variant-numeric: tabular-nums`.
 
 ## 4. Layout and responsiveness
 
-- **≥ 768px**: a 232px white sidebar (brand, primary "Add expense", nav: Dashboard, Transactions, Budget) and fluid
+- **≥ 768px**: a 232px white sidebar (brand, primary "Add expense", nav: Dashboard, Transactions, Budget, Recurring) and fluid
   content with 32px/40px padding.
-- **< 768px**: no sidebar. A bottom tab bar (Home, Transactions, centered + FAB, Budget) with 16px gutters.
+- **< 768px**: no sidebar. A bottom tab bar (Home, Transactions, centered + FAB, Budget, Recurring; the exact fit of a fourth tab is still to be confirmed by the product owner) with 16px gutters.
   Add/Edit opens as a full-screen sheet with a sticky bottom Save button. Confirmations are bottom sheets.
 - Use `auto-fit` grids for the KPI cards (min 260px) and the dashboard's two panels (min 380px), so they stack on their own.
 - Category chips scroll horizontally on mobile.
@@ -108,6 +108,7 @@ Give every amount `font-variant-numeric: tabular-nums`.
 | `TransactionRow` | Tile, note (ellipsis), category, and amount on the right. Desktop adds edit and delete icon buttons. On mobile the whole row is a link to Edit. |
 | `DayGroupHeader` | `Today · Fri 16 Oct` with the daily subtotal on the right, on a `#FAFAF7` band. |
 | `ConfirmDialog` | `role="alertdialog"`. Shows the expense summary (tile, note, category, date, amount). Cancel has default focus; the danger button is labelled "Delete expense". Becomes a bottom sheet on mobile. |
+| `RecurringBadge` | Small neutral pill "Recurring" with a repeat icon, shown on a `TransactionRow` added by a rule. Text label always present; `--ink-2` on `--line-soft`. |
 | `Toast` | Dark pill at bottom center, `role="status"`, disappears after 3.5 s. |
 | `EmptyState` | Icon tile, title, one sentence and one action. |
 | `Skeleton` | Shown only if loading takes longer than 300 ms. |
@@ -136,6 +137,32 @@ Give every amount `font-variant-numeric: tabular-nums`.
   `expenses_<today>.csv` when a custom range has an open side). It is disabled while the list is loading, failed or
   empty. On success a toast reads "Exported N expenses" ("Exported 1 expense" for one). On mobile the button wraps
   under the title; the exact placement is still to be confirmed by the product owner.
+
+### Recurring
+- The header has the title and the primary "Add recurring expense" button. On desktop the sidebar's primary "Add expense"
+  stays; this screen's button is the single primary action in the content area.
+- Each rule is a card row: category tile, note (ellipsis), category, the amount, "Day 5 of every month", and the next due
+  date as `Next: Mon 5 Nov`. A paused rule reads "Paused" and an ended one "Ended" instead of a date. Actions are icon
+  buttons with an `aria-label` naming the rule: Edit, Pause or Resume, Delete.
+- Delete opens the confirm dialog (rule summary, Cancel focused, danger button "Delete recurring expense") and says that
+  expenses already added are kept. After deleting, a toast reads "Recurring expense deleted".
+- Empty state: "No recurring expenses yet" with the sentence "Add rent, subscriptions and other monthly costs once." and
+  the action "Add recurring expense".
+- Pause and resume toast: "Paused" / "Resumed". A resumed rule skips the months missed while paused.
+
+### Add / Edit recurring expense
+| Field | Rules | Error copy |
+|---|---|---|
+| Amount, Category, Note | Same as Add / Edit expense | Same as Add / Edit expense |
+| Day of month (required) | Whole number 1 to 31. Helper: "In shorter months this falls on the last day." | "Enter a day from 1 to 31." |
+| Start date (required) | Defaults to today. Not more than 24 months back. Locked, with the helper "Can't change after the first expense is added.", once the rule has added an expense. | "Pick a start date." · "Start date can't be more than 24 months ago." |
+| End date (optional) | Not before the start date. | "End date can't be before the start date." |
+
+- Same validation flow, summary and focus rules as Add / Edit expense. Title "Add recurring expense" / "Edit recurring expense", buttons "Save" / "Save changes".
+- Edit helper under the title: "Changes apply to future months only."
+- A start date in the past shows the helper "This adds N expenses up to today." (final wording still to be confirmed by the product owner).
+- Expenses added by a rule appear in Transactions with the `RecurringBadge`. They are edited and deleted like any other. Deleting
+  one does not add it again.
 
 ### Add / Edit expense
 | Field | Rules | Error copy |
@@ -209,6 +236,8 @@ Example expenses (from the Transactions board):
 | 4. Monthly summaries | Dashboard: month switcher, Spent KPI, category breakdown, recent list |
 | 5. Budgets | Budget page, Remaining and per-day KPIs, status badges, alert strip, toast warnings |
 | 6. CSV export | Export CSV button on Transactions, "Exported N expenses" toast |
+| 7. Recurring expenses | Recurring screen and form, `RecurringBadge` on Transactions rows, fourth navigation item |
 
 UI fields per expense: `id`, `amount` (integer VND), `category_id`, `date` (ISO `YYYY-MM-DD`), `note` (≤ 120, optional).
 Budgets: one monthly total and one optional amount per category, per month.
+Recurring rules: `amount`, `category_id`, `note` (as for an expense), `day` (1 to 31), `start_date`, optional `end_date`, paused. An expense added by a rule also has `recurring_id`.
