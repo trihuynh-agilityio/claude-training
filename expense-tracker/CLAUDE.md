@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal Expense Tracker: a React + TypeScript + Vite frontend (`frontend/`) and a FastAPI backend (`backend/`). It lives in one exercise folder of a training repo. Every other top-level folder is unrelated, so keep changes inside `expense-tracker/`.
 
-`README.md` lists five phases: expenses, categories, filtering, monthly summaries, budgets. Build them in order and keep each phase small. Phases 1 (expense CRUD), 2 (the 8 fixed categories, no category management screen), 3 (filtering, client-side) 4 (monthly summaries: Dashboard) and 5 (monthly budgets) are done; the Dashboard alert strip and the over-budget toast are not built. Storage is SQLite via the standard-library `sqlite3` module.
+`README.md` lists five phases: expenses, categories, filtering, monthly summaries, budgets. Build them in order and keep each phase small. Phases 1 (expense CRUD), 2 (the 8 fixed categories, no category management screen), 3 (filtering, client-side) 4 (monthly summaries: Dashboard) and 5 (monthly budgets) are done; the Dashboard alert strip and the over-budget toast are not built. Phase 6 (CSV export of the filtered Transactions list, frontend only) has an approved intent, spec and plan in `intent/2026-10-23-csv-export/` but is not built yet; update this paragraph and the Frontend layout notes (`src/lib/csv.ts`) when it lands. Storage is SQLite via the standard-library `sqlite3` module.
 
 ## UI design
 

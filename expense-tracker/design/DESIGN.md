@@ -131,6 +131,11 @@ Give every amount `font-variant-numeric: tabular-nums`.
 - The list is grouped by day, newest first, with daily subtotals.
 - When no expenses match the filters, show the empty state with a "Clear filters" button.
 - Delete opens the confirm dialog, then removes the row and shows a toast.
+- **Export CSV** is a secondary button in the header, next to the primary "Add expense" (which stays the only primary
+  action). It downloads the list as filtered on screen, newest first, as `expenses_<from>_<to>.csv` (or
+  `expenses_<today>.csv` when a custom range has an open side). It is disabled while the list is loading, failed or
+  empty. On success a toast reads "Exported N expenses" ("Exported 1 expense" for one). On mobile the button wraps
+  under the title; the exact placement is still to be confirmed by the product owner.
 
 ### Add / Edit expense
 | Field | Rules | Error copy |
@@ -203,6 +208,7 @@ Example expenses (from the Transactions board):
 | 3. Filtering | Search, category chips, date range, the "no match" empty state |
 | 4. Monthly summaries | Dashboard: month switcher, Spent KPI, category breakdown, recent list |
 | 5. Budgets | Budget page, Remaining and per-day KPIs, status badges, alert strip, toast warnings |
+| 6. CSV export | Export CSV button on Transactions, "Exported N expenses" toast |
 
 UI fields per expense: `id`, `amount` (integer VND), `category_id`, `date` (ISO `YYYY-MM-DD`), `note` (≤ 120, optional).
 Budgets: one monthly total and one optional amount per category, per month.
