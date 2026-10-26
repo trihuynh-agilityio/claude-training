@@ -24,6 +24,10 @@ Build the frontend to `design/DESIGN.md`. It covers the tokens, components, scre
 
 `.claude/settings.json` also registers a `Stop` hook (`.claude/hooks/notify-on-finish.sh`) that shows a macOS notification when Claude finishes responding. It does nothing where `osascript` is unavailable and never blocks.
 
+## Feature workflow
+
+Phase 1 (Plan) is the `plan-feature` skill (`.claude/skills/plan-feature/`): `grill-me` on the idea, `write-intent` into `docs/features/<feature-name>/intent.md`, user approval, then a GitHub Issue that points to the intent, created by the `issue-creator` subagent (`.claude/agents/issue-creator.md`, Haiku). Later phases are not automated yet.
+
 ## Git workflow
 
 - Work on `dayNN/<topic>` branches cut from `dev` (e.g. `day06/expense-tracker-scaffold`).
