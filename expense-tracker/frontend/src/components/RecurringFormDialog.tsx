@@ -137,8 +137,7 @@ export function RecurringFormDialog({ rule, onSave, onClose }: Props) {
             <div className="alert" role="alert">
               <AlertIcon />
               <span>
-                Fix {errorCount} {errorCount === 1 ? 'field' : 'fields'} to save this recurring
-                expense.
+                Fix {errorCount} {errorCount === 1 ? 'field' : 'fields'} to save this expense.
               </span>
             </div>
           )}
