@@ -7,5 +7,6 @@ export function downloadTextFile(fileName: string, text: string): void {
   document.body.append(link)
   link.click()
   link.remove()
-  URL.revokeObjectURL(url)
+  // Some browsers start the download after click() returns, so release the URL a tick later.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }

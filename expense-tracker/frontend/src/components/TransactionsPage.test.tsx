@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import '../test/setup'
@@ -103,5 +103,19 @@ describe('TransactionsPage export', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(before)
     expect(handlers.onAdd).not.toHaveBeenCalled()
     expect(handlers.onRetry).not.toHaveBeenCalled()
+  })
+
+  it('follows a changed date range in both the rows and the file name', async () => {
+    const old = { ...expense(9, 'Old trip'), date: '2020-01-15' }
+    renderPage({ expenses: [...EXPENSES, old] })
+    await userEvent.selectOptions(screen.getByLabelText('Date range'), 'custom')
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2020-01-01' } })
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2020-01-31' } })
+    await userEvent.click(exportButton())
+    const [fileName, text] = mockDownload.mock.calls[0]
+    expect(fileName).toBe('expenses_2020-01-01_2020-01-31.csv')
+    expect(text).toContain('Old trip')
+    expect(text).not.toContain('Grab')
+    expect(handlers.onExported).toHaveBeenLastCalledWith('Exported 1 expense')
   })
 })

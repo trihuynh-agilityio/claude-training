@@ -10,9 +10,9 @@ function escapeField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
 }
 
-/** A leading quote makes spreadsheets show a would-be formula as text. */
+/** A leading quote makes spreadsheets show a would-be formula (or one hidden behind a tab or CR) as text. */
 function guardFormula(note: string): string {
-  return /^[=+\-@]/.test(note) ? `'${note}` : note
+  return /^[=+\-@\t\r]/.test(note) ? `'${note}` : note
 }
 
 /** CSV text for the given expenses, in the order given: BOM, header, CRLF rows. */

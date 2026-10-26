@@ -69,7 +69,7 @@ describe('expensesToCsv', () => {
     expect(expensesToCsv([expense({ note: 'one\ntwo' })])).toContain(',"one\ntwo"\r\n')
   })
 
-  it.each(['=SUM(1,2)', '+1', '-50k refund', '@cmd'])(
+  it.each(['=SUM(1,2)', '+1', '-50k refund', '@cmd', '\t=cmd', '\r=1+1'])(
     'prefixes a note starting with %s',
     (note) => {
       const line = expensesToCsv([expense({ note })]).split('\r\n')[1]
