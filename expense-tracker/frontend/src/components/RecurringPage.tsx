@@ -68,8 +68,15 @@ export function RecurringPage({ onChanged, onToast }: Props) {
   // Errors propagate to the form, which keeps the dialog open and shows them.
   async function save(input: RecurringInput) {
     const today = todayISO()
+    // A note, amount or category change can't add expenses, so it skips the catch-up.
+    let mayAdd = true
     if (form?.mode === 'edit') {
-      await updateRecurring(form.rule.id, input, today)
+      const { rule } = form
+      mayAdd =
+        input.day !== rule.day ||
+        input.start_date !== rule.start_date ||
+        input.end_date !== rule.end_date
+      await updateRecurring(rule.id, input, today)
       onToast('Changes saved')
     } else {
       await createRecurring(input, today)
@@ -77,8 +84,13 @@ export function RecurringPage({ onChanged, onToast }: Props) {
     }
     setForm(null)
     // Catch up now, so a rule that starts in the past shows its expenses right away.
-    await generateRecurring(today).catch(() => undefined)
-    onChanged()
+    const added = mayAdd
+      ? await generateRecurring(today).then(
+          (r) => r.added,
+          () => 0,
+        )
+      : 0
+    if (added > 0) onChanged()
     await load()
   }
 

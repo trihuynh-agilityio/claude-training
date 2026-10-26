@@ -103,3 +103,10 @@ describe('labels and limits', () => {
     expect(countDue(20, '2026-10-01', null, '2026-10-16')).toBe(0)
   })
 })
+
+describe('years before 100', () => {
+  it('keeps the year instead of mapping it to the 1900s', () => {
+    expect(occurrenceInMonth(31, 26, 1)).toBe('0026-01-31')
+    expect(occurrenceInMonth(31, 24, 2)).toBe('0024-02-29')
+  })
+})

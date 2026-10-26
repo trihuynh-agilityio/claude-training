@@ -13,13 +13,12 @@ CategoryId = Literal[
 ]
 
 
-class ExpenseBase(BaseModel):
-    """Fields shared by what a client sends and what is stored."""
+class ExpenseFields(BaseModel):
+    """The amount, category and note rules shared by expenses and recurring rules."""
 
     # Whole đồng: VND has no minor unit, so floats and strings are rejected.
     amount: Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
     category_id: CategoryId
-    date: Date
     note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
 
     @field_validator("note", mode="before")
@@ -29,6 +28,12 @@ class ExpenseBase(BaseModel):
             value = value.strip()
             return value or None
         return value
+
+
+class ExpenseBase(ExpenseFields):
+    """Fields shared by what a client sends and what is stored."""
+
+    date: Date
 
 
 class ExpenseIn(ExpenseBase):
@@ -58,23 +63,12 @@ class CategoryTotal(BaseModel):
 Amount = Annotated[StrictInt, Field(ge=1, le=MAX_AMOUNT)]
 
 
-class RecurringIn(BaseModel):
+class RecurringIn(ExpenseFields):
     """A monthly rule. Amount, category and note follow the rules of ExpenseIn."""
 
-    amount: Amount
-    category_id: CategoryId
-    note: Annotated[str | None, Field(max_length=MAX_NOTE_LENGTH)] = None
     day: Annotated[StrictInt, Field(ge=1, le=31)]
     start_date: Date
     end_date: Date | None = None
-
-    @field_validator("note", mode="before")
-    @classmethod
-    def blank_note_is_none(cls, value: Any) -> Any:
-        if isinstance(value, str):
-            value = value.strip()
-            return value or None
-        return value
 
     @model_validator(mode="after")
     def end_not_before_start(self) -> "RecurringIn":

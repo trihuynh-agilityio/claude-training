@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { generateRecurring } from './api/recurring'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from './api/expenses'
 import { AppShell, type View } from './components/AppShell'
@@ -30,6 +30,7 @@ function App() {
   // Bumped after every saved change, even if reloading the list then fails, so the dashboard
   // fetches its summary again.
   const [version, setVersion] = useState(0)
+  const catchUp = useRef<Promise<{ added: number }> | null>(null)
   const bumpVersion = () => setVersion((count) => count + 1)
 
   const load = useCallback(
@@ -49,9 +50,14 @@ function App() {
     // Add due recurring expenses first, so the list (and the Dashboard) already include them.
     // A failed catch-up never blocks loading; it shows a toast instead.
     // State is set only after the request settles, never synchronously here.
-    generateRecurring(todayISO())
+    // The promise is kept in a ref so React StrictMode's second effect run reuses the same call.
+    catchUp.current ??= generateRecurring(todayISO())
+    catchUp.current
       .then(
-        () => undefined,
+        ({ added }) => {
+          // The Dashboard fetched its summary on mount, before these expenses existed.
+          if (added > 0 && !ignore) setVersion((count) => count + 1)
+        },
         () => !ignore && setToast('Couldn’t add recurring expenses. Try again later.'),
       )
       .then(() => listExpenses())

@@ -1,16 +1,18 @@
 import type { Recurring } from '../types'
-import { toISODate } from './dates'
 
 /** How far back a start date may be, relative to today. */
 export const MAX_MONTHS_BACK = 24
 
+// Plain arithmetic, not Date: `new Date(year, ...)` maps years 0 to 99 to the 1900s.
 function daysInMonth(year: number, month: number): number {
-  return new Date(year, month, 0).getDate()
+  if (month === 2) return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28
+  return [4, 6, 9, 11].includes(month) ? 30 : 31
 }
 
 /** The rule's date in a month (month is 1 to 12); short months use their last day. */
 export function occurrenceInMonth(day: number, year: number, month: number): string {
-  return toISODate(new Date(year, month - 1, Math.min(day, daysInMonth(year, month))))
+  const pad = (n: number, width = 2) => String(n).padStart(width, '0')
+  return `${pad(year, 4)}-${pad(month)}-${pad(Math.min(day, daysInMonth(year, month)))}`
 }
 
 /** Occurrence dates from `start`, later than `after`, not past `end` or `upTo`. Mirrors the backend. */

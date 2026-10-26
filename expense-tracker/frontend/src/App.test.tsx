@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import './test/setup'
@@ -49,4 +50,17 @@ it('still loads the list and shows a toast when the catch-up fails', async () =>
 
   expect(await screen.findByText(/Couldn’t add recurring expenses/)).toBeInTheDocument()
   expect(mockList).toHaveBeenCalledTimes(1)
+})
+
+it('calls the catch-up once under StrictMode and refetches the dashboard when it added expenses', async () => {
+  mockGenerate.mockResolvedValue({ added: 1 })
+
+  render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+
+  await vi.waitFor(() => expect(vi.mocked(getSummary).mock.calls.length).toBeGreaterThanOrEqual(2))
+  expect(mockGenerate).toHaveBeenCalledTimes(1)
 })

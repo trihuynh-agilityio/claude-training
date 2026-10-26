@@ -9,6 +9,7 @@ import {
   generateRecurring,
   listRecurring,
   setRecurringPaused,
+  updateRecurring,
 } from '../api/recurring'
 import type { Recurring } from '../types'
 import { RecurringPage } from './RecurringPage'
@@ -31,6 +32,7 @@ vi.mock('../api/recurring', () => ({
 }))
 const mockList = vi.mocked(listRecurring)
 const mockCreate = vi.mocked(createRecurring)
+const mockUpdate = vi.mocked(updateRecurring)
 const mockPause = vi.mocked(setRecurringPaused)
 const mockDelete = vi.mocked(deleteRecurring)
 const mockGenerate = vi.mocked(generateRecurring)
@@ -140,6 +142,7 @@ describe('RecurringPage', () => {
 
   it('saves a rule, catches up and tells the app', async () => {
     mockCreate.mockResolvedValue(rule())
+    mockGenerate.mockResolvedValue({ added: 3 })
     const { user, onChanged, onToast } = setup()
     await user.click((await screen.findAllByRole('button', { name: 'Add recurring expense' }))[0])
 
@@ -155,5 +158,21 @@ describe('RecurringPage', () => {
     expect(mockGenerate).toHaveBeenCalled()
     expect(onChanged).toHaveBeenCalled()
     expect(onToast).toHaveBeenCalledWith('Recurring expense added')
+  })
+
+  it('skips the catch-up when an edit cannot add expenses', async () => {
+    mockList.mockResolvedValue([rule()])
+    mockUpdate.mockResolvedValue(rule({ note: 'Flat' }))
+    const { user, onChanged } = setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Rent' }))
+    const note = screen.getByLabelText(/Note/)
+    await user.clear(note)
+    await user.type(note, 'Flat')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(mockUpdate).toHaveBeenCalled()
+    expect(mockGenerate).not.toHaveBeenCalled()
+    expect(onChanged).not.toHaveBeenCalled()
   })
 })

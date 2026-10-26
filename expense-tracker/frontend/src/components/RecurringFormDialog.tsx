@@ -73,6 +73,12 @@ export function RecurringFormDialog({ rule, onSave, onClose }: Props) {
       ? countDue(day, draft.startDate, draft.endDate || null, today)
       : 0
 
+  const startHint = startLocked
+    ? 'Can’t change after the first expense is added.'
+    : pastCount > 0
+      ? `This adds ${pastCount} ${pastCount === 1 ? 'expense' : 'expenses'} up to today.`
+      : null
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setServerError(null)
@@ -221,18 +227,15 @@ export function RecurringFormDialog({ rule, onSave, onClose }: Props) {
                 value={draft.startDate}
                 onChange={(e) => set('startDate', e.target.value)}
                 aria-invalid={errors.startDate ? true : undefined}
-                aria-describedby={errors.startDate ? 'r-start-error' : 'r-start-hint'}
+                aria-describedby={
+                  errors.startDate ? 'r-start-error' : startHint ? 'r-start-hint' : undefined
+                }
               />
             </div>
             <FieldError id="r-start-error" message={errors.startDate} />
-            {startLocked && (
+            {startHint && !errors.startDate && (
               <p className="hint" id="r-start-hint">
-                Can’t change after the first expense is added.
-              </p>
-            )}
-            {pastCount > 0 && !errors.startDate && (
-              <p className="hint" id="r-start-hint">
-                This adds {pastCount} {pastCount === 1 ? 'expense' : 'expenses'} up to today.
+                {startHint}
               </p>
             )}
           </div>

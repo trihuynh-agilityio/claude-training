@@ -57,14 +57,16 @@ def months_back(today: date, months: int) -> date:
     return occurrence_in_month(today.day, year, month + 1)
 
 
+def parse_date(value: str | None) -> date | None:
+    return date.fromisoformat(value) if value else None
+
+
 def to_rule(row: sqlite3.Row) -> Recurring:
     data = dict(row)
     data["paused"] = bool(data["paused"])
     start = date.fromisoformat(data["start_date"])
-    end = date.fromisoformat(data["end_date"]) if data["end_date"] else None
-    last = (
-        date.fromisoformat(data["last_generated"]) if data["last_generated"] else None
-    )
+    end = parse_date(data["end_date"])
+    last = parse_date(data["last_generated"])
     data["next_due"] = (
         None
         if data["paused"]
@@ -130,10 +132,8 @@ def generate(conn: Connection, today: TodayParam = None) -> dict[str, int]:
     for row in conn.execute(
         f"SELECT {RULE_COLUMNS} FROM recurring_rules WHERE paused = 0"
     ).fetchall():
-        last = (
-            date.fromisoformat(row["last_generated"]) if row["last_generated"] else None
-        )
-        end = date.fromisoformat(row["end_date"]) if row["end_date"] else None
+        last = parse_date(row["last_generated"])
+        end = parse_date(row["end_date"])
         due = list(
             occurrences(
                 row["day"], date.fromisoformat(row["start_date"]), end, last, today
@@ -166,6 +166,8 @@ def generate(conn: Connection, today: TodayParam = None) -> dict[str, int]:
 def update_rule(
     rule_id: int, payload: RecurringIn, conn: Connection, today: TodayParam = None
 ) -> Recurring:
+    # Take the write lock first, so a concurrent generate can't slip in after the lock check.
+    conn.execute("BEGIN IMMEDIATE")
     row = fetch_rule(conn, rule_id)
     if payload.start_date.isoformat() != row["start_date"]:
         if row["last_generated"] is not None:
@@ -198,8 +200,8 @@ def set_paused(
     last_generated = row["last_generated"]
     if row["paused"] and not payload.paused:
         # Resuming skips what fell due while paused: mark everything up to today as handled.
-        last = date.fromisoformat(last_generated) if last_generated else None
-        end = date.fromisoformat(row["end_date"]) if row["end_date"] else None
+        last = parse_date(last_generated)
+        end = parse_date(row["end_date"])
         skipped = list(
             occurrences(
                 row["day"],
