@@ -11,5 +11,12 @@ __pycache__/
 # Workflow runtime state and hook log
 .claude/workflow/
 
+# UI-check evidence: only result.md is committed
+docs/features/*/evidence/**/*.png
+docs/features/*/evidence/**/*.webm
+docs/features/*/evidence/**/*.mp4
+docs/features/*/evidence/**/trace.zip
+docs/features/*/evidence/**/console.log
+
 # OS
 .DS_Store
