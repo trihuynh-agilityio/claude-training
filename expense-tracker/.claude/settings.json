@@ -7,7 +7,8 @@
       "Bash(gh issue comment *)",
       "Bash(gh issue edit *)",
       "Bash(gh label create *)",
-      "Bash(gh label list *)"
+      "Bash(gh label list *)",
+      "Bash(gh api repos/trihuynh-agilityio/claude-training/issues/*)"
     ]
   },
   "hooks": {
