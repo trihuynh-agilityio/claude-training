@@ -26,7 +26,11 @@ Build the frontend to `design/DESIGN.md`. It covers the tokens, components, scre
 
 ## Feature workflow
 
-Phase 1 (Plan) is the `plan-feature` skill (`.claude/skills/plan-feature/`): `grill-me` on the idea, `write-intent` into `docs/features/<feature-name>/intent.md`, user approval, then a GitHub Issue that points to the intent, created by the `issue-creator` subagent (`.claude/agents/issue-creator.md`, Haiku). Later phases are not automated yet.
+Phase 1 (Plan) is the `plan-feature` skill (`.claude/skills/plan-feature/`): `grill-me` on the idea, `write-intent` into `docs/features/<feature-name>/intent.md`, user approval, then a GitHub Issue that points to the intent, created by the `github-ops` subagent (`.claude/agents/github-ops.md`, Haiku). Later phases are not automated yet.
+
+## Next phase hook
+
+`.claude/settings.json` also registers a `Stop` hook (`.claude/hooks/next-phase.sh`). When `plan-feature` has written `.claude/workflow/state.json` with `phase: plan`, `status: done`, `handed_off: false`, the hook marks it handed off and blocks the stop once, telling Claude to run `design-feature`. Each run appends a line to `.claude/workflow/hook.log`. Both files are git-ignored. `settings.json` also allows the `gh issue` and `gh label` commands that `github-ops` runs.
 
 ## Git workflow
 

@@ -24,12 +24,19 @@ Show the user the path and the open questions. Ask with `AskUserQuestion`: appro
 
 The issue tracks the feature as a TODO. `intent.md` is the source of truth, so the issue only points to it.
 
-Hand this step to the `issue-creator` agent (`.claude/agents/issue-creator.md`), which owns the repo, title, body and label. Do not rebuild them here.
+Hand this step to the `github-ops` agent (`.claude/agents/github-ops.md`), which owns the repo, title, body and label. Do not rebuild them here.
 
-- Before the hand-off, confirm with the user that an issue titled `Feature: <Change name from intent line 1>` should be created, since an issue is public and the agent does not ask.
-- Call the Agent tool with `subagent_type: "issue-creator"` and the feature folder name (`<feature-name>`) as the prompt.
+- The approval in step 3 covers this step: create the issue without asking again.
+- Call the Agent tool with `subagent_type: "github-ops"` and the prompt `create-issue docs/features/<feature-name>/intent.md`.
+- The issue leaves Phase 1 labeled `feature` and `phase:plan-done`; Phase 2 starts from that label.
 - Take the issue URL from its report. If it reports the intent is not approved or the create failed, tell the user and stop.
 
 ## 5. Finish
 
-Report the intent path and the issue URL. Do not commit, push, or start Phase 2.
+Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed) with exactly this content, so the `Stop` hook starts Phase 2:
+
+```json
+{"feature": "<feature-name>", "phase": "plan", "status": "done", "handed_off": false}
+```
+
+Then report the intent path and the issue URL. Do not commit or push. Phase 2 is started by the `Stop` hook (`.claude/hooks/next-phase.sh`), not here.
