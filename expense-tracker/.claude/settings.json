@@ -77,7 +77,14 @@
       "mcp__playwright-b__browser_start_video",
       "mcp__playwright-b__browser_stop_video",
       "mcp__playwright-b__browser_start_tracing",
-      "mcp__playwright-b__browser_stop_tracing"
+      "mcp__playwright-b__browser_stop_tracing",
+      "Bash(git show *)",
+      "Bash(*/.claude/scripts/code-head.sh*)",
+      "Bash(.claude/scripts/code-head.sh*)",
+      "Bash(*/.claude/scripts/check-review.sh *)",
+      "Bash(.claude/scripts/check-review.sh *)",
+      "Write(docs/features/*/reviews/**)",
+      "Edit(docs/features/*/reviews/**)"
     ],
     "deny": [
       "Bash(git merge)",
