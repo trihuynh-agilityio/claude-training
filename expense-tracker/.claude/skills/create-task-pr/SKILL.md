@@ -18,9 +18,9 @@ Arguments: `<feature-name> <task-id>`, for example `over-budget-alerts T4`.
 - Read the task's block in the plan: `Branch:` (the head), `PR target:` (the base, the integration branch), `PR title:`, `Issue:`, `Covers:`, and whether it has a `UI check:`.
 - The worktree is `<repo root>/.claude/worktrees/<branch with / replaced by ->`. Work from its `expense-tracker/` folder.
 
-## 1. Commit the UI result, if any
+## 1. Keep the UI evidence local
 
-If the task has a `UI check:` and `docs/features/<feature-name>/evidence/<task-id>/result.md` exists in the worktree but is not committed, commit that one file with `git add` and `git commit` (message `<task id>: UI check result`, a blank line, then `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`). It is the only evidence file that is committed.
+Never commit anything from `docs/features/<feature-name>/evidence/`, not even `result.md`. The gate reads `result.md` from the worktree, and step 5 puts its content and the screenshots in the PR description.
 
 ## 2. Gate
 
@@ -41,7 +41,7 @@ Push only the task branch: `git push -u github <Branch>`, run from the worktree.
    - `Refs #<sub-issue number>` (from `Issue:`). No closing keyword such as Closes or Fixes.
    - The requirements the task covers, from `Covers:`.
    - The review summary from `docs/features/<feature-name>/reviews/<task-id>.md`: the number of rounds, the final verdict, and the minor findings still open.
-   - Only if the task has a `UI check:`: the content of its `result.md`, and the list of local evidence files (the other files in that evidence folder).
+   - Only if the task has a `UI check:`: the content of its local `result.md` (its path and file list lines left out), then a `### Screenshots` section so the reviewer sees the UI without running it. Get it from `<project root>/.claude/scripts/publish-evidence.sh <task-id> docs/features/<feature-name>/evidence/<task-id> <PR target>`, run from the worktree: it pushes the screenshots to the never-merged branch `<PR target>-evidence` and prints one Markdown image per screenshot, linked by commit so the images never change. Paste its output as is. List the other local evidence files (logs, traces) by name only.
    - As the very last line: `Created by workflow; review and merge by a human.`
 3. Write the whole body to `<project root>/.claude/workflow/pr-<task-id>.md`.
 

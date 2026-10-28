@@ -31,8 +31,10 @@ bad() { echo "NOT READY: $1" >&2; fail=1; }
 # 1. Branch and a clean tree.
 current="$(git rev-parse --abbrev-ref HEAD)"
 [[ "$current" == "$branch" ]] || bad "branch is $current; the plan says $branch"
-# The review report is never committed; a task branch cut before .gitignore covered it shows it as untracked.
-dirty="$(git status --porcelain --untracked-files=all | grep -vE "^\?\? (.*/)?docs/features/[^/]+/reviews/$task\.md$")"
+# The review report and the UI evidence (result.md included) are never committed; a task branch cut
+# before .gitignore covered them shows them as untracked.
+dirty="$(git status --porcelain --untracked-files=all | grep -vE "^\?\? (.*/)?docs/features/[^/]+/reviews/$task\.md$" |
+  grep -vE "^\?\? (.*/)?docs/features/[^/]+/evidence/$task/" || true)"
 [[ -z "$dirty" ]] || bad "the working tree is not clean (commit or remove: $(head -3 <<<"$dirty" | tr '\n' ' '))"
 
 # 2. The sub-issue exists.
@@ -49,8 +51,8 @@ if grep -q '^- \*\*UI check\*\*' <<<"$block"; then
   result="docs/features/$feature/evidence/$task/result.md"
   if [[ ! -f "$result" ]]; then
     bad "the task has a UI check but $result does not exist"
-  elif ! git ls-files --error-unmatch "$result" >/dev/null 2>&1; then
-    bad "$result is not committed"
+  elif git ls-files --error-unmatch "$result" >/dev/null 2>&1; then
+    bad "$result is committed; it stays local and its content goes into the PR description"
   else
     overall="$(grep -m1 -E '^Overall:' "$result" | sed -E 's/^Overall: *//')"
     ui_commit="$(grep -m1 -E '^Commit:' "$result" | sed -E 's/^Commit: *//')"

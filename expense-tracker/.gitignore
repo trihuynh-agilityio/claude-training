@@ -14,12 +14,8 @@ __pycache__/
 # Task review reports stay local
 docs/features/*/reviews/
 
-# UI-check evidence: only result.md is committed
-docs/features/*/evidence/**/*.png
-docs/features/*/evidence/**/*.webm
-docs/features/*/evidence/**/*.mp4
-docs/features/*/evidence/**/trace.zip
-docs/features/*/evidence/**/console.log
+# UI-check evidence stays local; its result and screenshots go into the PR description
+docs/features/*/evidence/
 
 # OS
 .DS_Store

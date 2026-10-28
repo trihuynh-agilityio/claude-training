@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Publishes one task's UI-check screenshots to the feature's evidence branch and prints Markdown
+# image lines for the PR description. The evidence branch is an orphan branch that is never merged,
+# so task PRs carry no evidence files while reviewers still see the screenshots inline.
+#   publish-evidence.sh <task-id> <evidence-dir> <integration-branch>
+# Run from anywhere inside the repository. The branch is <integration-branch>-evidence, its
+# worktree <repo root>/.claude/worktrees/<branch with / replaced by ->, and the task's files live
+# in <task-id>/ there. Pushes only that branch, never with force.
+
+set -euo pipefail
+
+task="${1:-}"; dir="${2:-}"; base="${3:-}"
+[[ -n "$task" && -d "$dir" && -n "$base" ]] || { echo "usage: publish-evidence.sh <task-id> <evidence-dir> <integration-branch>" >&2; exit 2; }
+[[ "$base" == feat/* ]] || { echo "publish-evidence: integration branch must be feat/*, got $base" >&2; exit 2; }
+
+repo="trihuynh-agilityio/claude-training"
+branch="$base-evidence"
+top="$(git rev-parse --path-format=absolute --git-common-dir)/.."
+top="$(cd "$top" && pwd)"
+wt="$top/.claude/worktrees/${branch//\//-}"
+
+shopt -s nullglob
+images=("$dir"/*.png "$dir"/*.jpg "$dir"/*.gif)
+((${#images[@]})) || { echo "publish-evidence: no images in $dir" >&2; exit 1; }
+
+if [[ ! -d "$wt" ]]; then
+  if git -C "$top" ls-remote --exit-code --heads github "$branch" >/dev/null 2>&1; then
+    git -C "$top" fetch -q github "$branch:$branch"
+    git -C "$top" worktree add -q "$wt" "$branch"
+  else
+    git -C "$top" worktree add -q --orphan -b "$branch" "$wt"
+  fi
+fi
+
+# Replace this task's folder only; other tasks' screenshots stay.
+rm -rf "${wt:?}/$task"
+mkdir -p "$wt/$task"
+cp "${images[@]}" "$wt/$task/"
+git -C "$wt" add -A "$task"
+if ! git -C "$wt" diff --cached --quiet; then
+  git -C "$wt" commit -q -m "$task: UI check screenshots" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+fi
+(cd "$wt" && git push -q -u github "$branch")
+
+sha="$(git -C "$wt" rev-parse HEAD)"
+for f in "$wt/$task"/*; do
+  name="$(basename "$f")"
+  echo "**${name%.*}**"
+  echo
+  echo "![${name%.*}](https://raw.githubusercontent.com/$repo/$sha/$task/$name)"
+  echo
+done

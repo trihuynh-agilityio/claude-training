@@ -109,7 +109,7 @@ Every task has, in this order:
 - Every scenario must be reproducible as written: name the exact setup and data. For a failure, slow or offline state, say how to cause it in the browser (for example a console override of `fetch` that never answers for one URL), never a step like "stop the server and bring it back".
 - **Evidence**: a screenshot per scenario, a trace or video for multi-step flows, and the browser console log with failed requests.
 - UI checks run with Playwright MCP inside the task's own lane, right after the implementer and before the task's PR is created. Each lane has its own browser and its own fixed dev-server ports; record both lanes' ports in the plan's Build rules, read from `CLAUDE.md`.
-- Evidence goes in `docs/features/<feature-name>/evidence/<task-id>/` with a `result.md` (each scenario pass or fail, observed against expected, errors, branch and commit). Only `result.md` is committed; screenshots, traces, videos and logs stay local. The content of `result.md` goes into the PR description.
+- Evidence goes in `docs/features/<feature-name>/evidence/<task-id>/` with a `result.md` (each scenario pass or fail, observed against expected, errors, branch and commit). Nothing in the evidence folder is committed. The content of `result.md` and the screenshots (published by `publish-evidence.sh`) go into the PR description.
 
 If the task has no UI change, leave the UI check out.
 
