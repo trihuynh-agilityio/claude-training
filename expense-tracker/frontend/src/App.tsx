@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { generateRecurring } from './api/recurring'
+import { getSummary } from './api/summary'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from './api/expenses'
 import { AppShell, type View } from './components/AppShell'
 import { BudgetPage } from './components/BudgetPage'
@@ -9,11 +10,15 @@ import { ExpenseFormDialog } from './components/ExpenseFormDialog'
 import { RecurringPage } from './components/RecurringPage'
 import { Toast } from './components/Toast'
 import { TransactionsPage, type LoadStatus } from './components/TransactionsPage'
+import { alertText, newlyOver } from './lib/budgets'
 import { todayISO } from './lib/dates'
+import { withTimeout } from './lib/timeout'
 import type { Expense, ExpenseInput } from './types'
 
 /** Only show the skeleton if loading takes longer than this, to avoid a flash. */
 const SKELETON_DELAY_MS = 300
+/** A month summary lookup around a save gives up after this long. */
+const LOOKUP_TIMEOUT_MS = 2000
 
 type FormState = { mode: 'add' } | { mode: 'edit'; expense: Expense }
 
@@ -86,17 +91,23 @@ function App() {
     void load()
   }
 
+  // Reads the month's summary for the over-budget check; null if it fails or is too slow.
+  const lookup = (month: string) =>
+    withTimeout(getSummary(month, todayISO()), LOOKUP_TIMEOUT_MS).catch(() => null)
+
   // Errors propagate to the form, which keeps the dialog open and shows them.
   async function save(input: ExpenseInput) {
-    if (form?.mode === 'edit') {
-      await updateExpense(form.expense.id, input)
-      setToast('Changes saved')
-    } else {
-      await createExpense(input)
-      setToast('Expense added')
-    }
+    const month = input.date.slice(0, 7)
+    const before = await lookup(month)
+    const editing = form?.mode === 'edit'
+    if (editing) await updateExpense(form.expense.id, input)
+    else await createExpense(input)
     setForm(null)
     bumpVersion()
+    const after = before ? await lookup(month) : null
+    const over = before && after ? newlyOver(before, after) : []
+    const base = editing ? 'Changes saved' : 'Expense added'
+    setToast(over.length > 0 ? `${base}. ${alertText(over, [])}` : base)
     await load()
   }
 
