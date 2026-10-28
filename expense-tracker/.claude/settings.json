@@ -99,7 +99,17 @@
       "CronList",
       "CronDelete",
       "Bash(*/.claude/scripts/build-position.sh *)",
-      "Bash(.claude/scripts/build-position.sh *)"
+      "Bash(.claude/scripts/build-position.sh *)",
+      "Bash(gh pr edit *)",
+      "Bash(uv sync*)",
+      "Bash(*/.claude/scripts/verify-worktree.sh *)",
+      "Bash(.claude/scripts/verify-worktree.sh *)",
+      "Bash(*/.claude/scripts/verify-checks.sh *)",
+      "Bash(.claude/scripts/verify-checks.sh *)",
+      "Bash(*/.claude/scripts/publish-verification.sh *)",
+      "Bash(.claude/scripts/publish-verification.sh *)",
+      "Write(docs/features/*/verification.md)",
+      "Edit(docs/features/*/plan.md)"
     ],
     "deny": [
       "Bash(git merge)",
