@@ -1,0 +1,56 @@
+---
+name: create-task-pr
+description: Phase 3 (Build) last step for ONE task: after the review loop (and the UI check, if the task has one), pushes the task branch and opens its pull request against the integration branch. Run with the feature folder name and the task id. It never merges or approves.
+model: sonnet
+disable-model-invocation: true
+allowed-tools: Read Write Glob Grep Agent Skill Bash(git status*) Bash(git log*) Bash(git diff*) Bash(git rev-parse *) Bash(git add *) Bash(git commit *) Bash(git push -u github feat/*) Bash(git push github feat/*) Bash(git ls-remote *) Bash(*/.claude/scripts/check-pr-ready.sh *) Bash(*/.claude/scripts/code-head.sh*)
+---
+
+# Create the PR for one task
+
+The last step of the per-task pipeline: implementer, Verify and guard, `review-task`, `ui-verifier` (UI tasks only), then this. It pushes the task branch and opens one pull request. It never merges, approves, or pushes anything else.
+
+Arguments: `<feature-name> <task-id>`, for example `over-budget-alerts T4`.
+
+## Paths
+
+- Project root: the folder that contains `docs/features/`. Plan: `<project root>/docs/features/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`.
+- Read the task's block in the plan: `Branch:` (the head), `PR target:` (the base, the integration branch), `PR title:`, `Issue:`, `Covers:`, and whether it has a `UI check:`.
+- The worktree is `<repo root>/.claude/worktrees/<branch with / replaced by ->`. Work from its `expense-tracker/` folder.
+
+## 1. Commit the UI result, if any
+
+If the task has a `UI check:` and `docs/features/<feature-name>/evidence/<task-id>/result.md` exists in the worktree but is not committed, commit that one file with `git add` and `git commit` (message `<task id>: UI check result`, a blank line, then `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`). It is the only evidence file that is committed.
+
+## 2. Gate
+
+Run `check-pr-ready.sh <task-id> <plan path>` from the worktree. If it fails, show its messages and stop. Never edit the gates, bypass them or fix the cause here.
+
+## 3. Idempotency
+
+Call the `github-ops` agent with `find-pr <head branch>`. If a pull request already exists for the branch, in any state, report its number, URL and state, and stop. Do not push again, do not create a second one and do not rewrite its body.
+
+## 4. Push the task branch
+
+Push only the task branch: `git push -u github <Branch>`, run from the worktree. Never force, and never push the integration branch, `dev` or `main`. If the remote branch has history this branch does not contain, stop and report it.
+
+## 5. Body
+
+1. Invoke the `pr-description` skill on the task diff `<PR target>...HEAD`, run from the worktree. Override: the base is the task's `PR target`, not `dev`; skip its step 4 (no merge request, no push); use none of its title. Use its body as the main body, including its closing line.
+2. Append a `## Workflow details` section with only what `pr-description` does not already say. Skip any part it covers; never repeat it.
+   - `Refs #<sub-issue number>` (from `Issue:`). No closing keyword such as Closes or Fixes.
+   - The requirements the task covers, from `Covers:`.
+   - The review summary from `docs/features/<feature-name>/reviews/<task-id>.md`: the number of rounds, the final verdict, and the minor findings still open.
+   - Only if the task has a `UI check:`: the content of its `result.md`, and the list of local evidence files (the other files in that evidence folder).
+   - As the very last line: `Created by workflow; review and merge by a human.`
+3. Write the whole body to `<project root>/.claude/workflow/pr-<task-id>.md`.
+
+## 6. Create the PR
+
+Call the `github-ops` agent with `create-pr`: head = the task's `Branch:`, base = its `PR target:`, title = its `PR title:` field exactly (`T<n>: <task title> (#<sub-issue-number>)`), body file = the path above. Never create it by any other route.
+
+For a new PR, call `github-ops` `swap-label` on the task's sub-issue (`Issue:`) from `status:in-progress` to `status:in-review`.
+
+## 7. Report
+
+The PR number and URL, and whether it was new. Do not merge, approve, review or close anything.

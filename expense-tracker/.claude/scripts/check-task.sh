@@ -40,13 +40,28 @@ top="$(git rev-parse --show-toplevel)"
 prefix="$(git rev-parse --show-prefix)"
 mb="$(git merge-base "$base_ref" HEAD)"
 
+# The UI check's result.md and the review report are workflow records: a task may add them
+# outside its Files list, and they do not count toward the size limits.
+is_record() {
+  case "$1" in
+    "$prefix"docs/features/*/evidence/"$task"/result.md | "$prefix"docs/features/*/reviews/"$task".md) return 0 ;;
+  esac
+  return 1
+}
+
 # Changed files and lines, paths from the repository root.
 changed="$( { git -C "$top" diff --name-only "$mb"; git -C "$top" ls-files --others --exclude-standard; } | sort -u | sed '/^$/d')"
-lines=$(git -C "$top" diff --numstat "$mb" | awk '$1 != "-" { s += $1 + $2 } END { print s + 0 }')
+lines=0
+while read -r added removed f; do
+  [[ "$added" == "-" ]] || is_record "$f" || lines=$((lines + added + removed))
+done < <(git -C "$top" diff --numstat "$mb")
 while IFS= read -r f; do
-  [[ -n "$f" ]] && lines=$((lines + $(wc -l <"$top/$f" 2>/dev/null || echo 0)))
+  [[ -n "$f" ]] && ! is_record "$f" && lines=$((lines + $(wc -l <"$top/$f" 2>/dev/null || echo 0)))
 done < <(git -C "$top" ls-files --others --exclude-standard)
-count=$(grep -c . <<<"$changed")
+count=0
+while IFS= read -r f; do
+  [[ -n "$f" ]] && ! is_record "$f" && count=$((count + 1))
+done <<<"$changed"
 
 fail=0
 bad() { echo "FAIL: $1" >&2; fail=1; }
@@ -63,10 +78,7 @@ fi
 
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
-  # The UI check's result.md and the review report are the only files a task may add outside its Files list.
-  case "$f" in
-    "$prefix"docs/features/*/evidence/"$task"/result.md | "$prefix"docs/features/*/reviews/"$task".md) continue ;;
-  esac
+  is_record "$f" && continue
   rel="${f#"$prefix"}"
   [[ "$f" == "$prefix"* ]] || rel=""
   if [[ -z "$rel" ]] || ! grep -qxF "$rel" <<<"$files"; then

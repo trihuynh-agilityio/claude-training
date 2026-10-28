@@ -1,6 +1,6 @@
 ---
 name: github-ops
-description: Use for GitHub-side feature tracking: create-issue, find-issue, comment, swap-label. Say which operation, plus the intent path, issue number, text or labels it needs.
+description: Use for GitHub-side feature tracking: create-issue, find-issue, comment, swap-label, list-sub-issues, create-sub-issue, find-pr, create-pr, get-pr-state. Say which operation, plus the intent path, issue number, text or labels it needs.
 model: haiku
 tools: Bash, Read
 ---
@@ -23,6 +23,14 @@ Repo: `trihuynh-agilityio/claude-training`. Pass `--repo trihuynh-agilityio/clau
    4. Get its numeric database id with `gh api repos/trihuynh-agilityio/claude-training/issues/<new-number> -q .id`. This is not the issue number and not the `gh issue view --json id` value.
    5. Link it: `gh api -X POST repos/trihuynh-agilityio/claude-training/issues/<parent>/sub_issues -F sub_issue_id=<id>`. Use `-F` so the id is sent as an integer.
    Return the number, URL and `new` or `already existed`. If the link fails, return the error with the new issue's number and leave the issue as it is: do not retry blindly and do not delete anything.
+
+7. **find-pr** (input: head branch). Run `gh pr list --repo trihuynh-agilityio/claude-training --head <branch> --state all --json number,url,state,baseRefName` and return the pull requests found (number, URL, state, base), or `not found`. Read-only.
+8. **create-pr** (input: head branch, base branch, title, body-file path). Do these in order:
+   1. Run find-pr for the head branch. If a pull request exists in any state, return its number, URL and state with `already existed`; create nothing and change nothing.
+   2. Otherwise create it: `gh pr create --repo trihuynh-agilityio/claude-training --base <base> --head <branch> --title "<title>" --body-file <body-file>`. It is a normal pull request, not a draft, with no labels, reviewers or assignees. The body comes from the file only, never inline.
+   Return the number, URL and `new` or `already existed`. Never merge, approve, review, close or edit a pull request, and never push; the branch must already be on the remote.
+
+9. **get-pr-state** (input: one or more branch names). For each branch run `gh pr list --repo trihuynh-agilityio/claude-training --head <branch> --state all --json number,state,url,baseRefName`. Return one line per branch: `<branch> <OPEN|MERGED|CLOSED|NONE> <number>` (`NONE` and no number if there is no pull request; if there are several, report the most recent). `MERGED` and `CLOSED` come straight from GitHub's `state`, never guessed. Read-only; change nothing.
 
 ## Rules
 

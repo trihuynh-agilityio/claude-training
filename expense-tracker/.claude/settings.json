@@ -84,7 +84,22 @@
       "Bash(*/.claude/scripts/check-review.sh *)",
       "Bash(.claude/scripts/check-review.sh *)",
       "Write(docs/features/*/reviews/**)",
-      "Edit(docs/features/*/reviews/**)"
+      "Edit(docs/features/*/reviews/**)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(git push -u github feat/*)",
+      "Bash(git push github feat/*)",
+      "Bash(git ls-remote *)",
+      "Bash(*/.claude/scripts/check-pr-ready.sh *)",
+      "Bash(.claude/scripts/check-pr-ready.sh *)",
+      "Write(.claude/workflow/**)",
+      "Edit(.claude/workflow/**)",
+      "CronCreate",
+      "CronList",
+      "CronDelete",
+      "Bash(*/.claude/scripts/build-position.sh *)",
+      "Bash(.claude/scripts/build-position.sh *)"
     ],
     "deny": [
       "Bash(git merge)",
@@ -106,7 +121,9 @@
       "Bash(git push * *:refs/heads/dev)",
       "Bash(git push * *:refs/heads/main)",
       "Bash(git push * refs/heads/dev)",
-      "Bash(git push * refs/heads/main)"
+      "Bash(git push * refs/heads/main)",
+      "Bash(gh pr review)",
+      "Bash(gh pr review *)"
     ]
   },
   "hooks": {

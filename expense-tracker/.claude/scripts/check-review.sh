@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Review gate for one task. Exits 1 unless the review report exists, its final verdict is PASS,
 # and the commit it reviewed is still CODE_HEAD (see code-head.sh). Any code commit after the
-# review therefore forces a new review; a commit of the report itself does not.
+# review therefore forces a new review. The report itself stays local and is never committed.
 #   check-review.sh <task-id> [plan-path]
 # Run from the task's worktree, inside its expense-tracker/ folder. The plan path gives the
 # feature name; without it the script looks for docs/features/*/reviews/<task-id>.md.

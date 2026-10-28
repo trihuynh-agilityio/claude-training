@@ -65,7 +65,7 @@ Reviewed commit: <full CODE_HEAD hash>
 Minor findings kept for the PR description: <list, or none>
 ```
 
-Commit only the report in the worktree with `git add` and `git commit` (message `<task id>: review report`, then a blank line and the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`). Run `check-review.sh <task-id> <plan path>` and make sure it passes. Then:
+Never commit the report: it stays local in the worktree (`reviews/` is git-ignored, and the gates accept it untracked). Run `check-review.sh <task-id> <plan path>` and make sure it passes. Then:
 
 - if the task has a `UI check:`, call the `ui-verifier` agent with the plan path, the task id, the worktree path and the task's lane (`solo` uses lane A),
 - otherwise report "ready for PR".

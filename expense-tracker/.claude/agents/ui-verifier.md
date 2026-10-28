@@ -29,7 +29,7 @@ Never use the other lane's tools or ports, and never write outside your own evid
    - one screenshot per scenario, `NN-short-name.png` (`browser_take_screenshot` with an absolute `filename`),
    - for a multi-step flow the plan marks with a GIF, a video (`browser_start_video` with an absolute `filename`, then `browser_stop_video`) or a trace (`browser_start_tracing`, `browser_stop_tracing`, saved as `trace.zip`); if neither tool works, take one numbered screenshot per step and say so,
    - `console.log`: the console errors and warnings (`browser_console_messages`) and the failed network requests (`browser_network_requests`),
-   - `result.md`: one line per scenario with PASS or FAIL, observed against expected, and any console or network error; then the date and time, the worktree's branch and commit hash (`git -C <worktree> rev-parse --abbrev-ref HEAD` and `rev-parse --short HEAD`), and the list of local-only evidence files.
+   - `result.md`: one line per scenario with PASS or FAIL, observed against expected, and any console or network error; then the date and time, the worktree's branch (`git -C <worktree> rev-parse --abbrev-ref HEAD`) and the list of local-only evidence files. `result.md` must also have two lines of exactly this form, each on its own line: `Overall: PASS` (or `FAIL` or `BLOCKED`) and `Commit: <full hash printed by <project root>/.claude/scripts/code-head.sh run in the worktree>`, the code commit you verified. The PR gate reads both.
 5. **Clean up.** Close the browser (`browser_close`) and stop the lane's servers.
 6. **Report**, short: overall PASS, FAIL or BLOCKED; each scenario's status; the evidence paths.
 

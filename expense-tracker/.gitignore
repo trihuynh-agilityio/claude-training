@@ -11,6 +11,9 @@ __pycache__/
 # Workflow runtime state and hook log
 .claude/workflow/
 
+# Task review reports stay local
+docs/features/*/reviews/
+
 # UI-check evidence: only result.md is committed
 docs/features/*/evidence/**/*.png
 docs/features/*/evidence/**/*.webm
