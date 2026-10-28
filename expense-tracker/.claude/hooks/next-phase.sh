@@ -4,7 +4,8 @@
 #   plan       / done / handed_off=false -> design-feature       (Phase 1 -> Phase 2)
 #   design     / done / handed_off=false -> write-plan           (Phase 2 -> Phase 3)
 #   write-plan / done / handed_off=false -> create-task-issues   (asks the user to approve the plan)
-# Anything else (tasks, build, waiting_review, blocked, done) never advances: build-feature is user-run.
+#   tasks      / done / handed_off=false -> build-feature        (runs after the plan approval, no user command)
+# Anything else (build, waiting_review, blocked, done) never advances.
 # Appends one line per run to .claude/workflow/hook.log. Any problem allows the stop.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -30,6 +31,7 @@ case "$phase" in
   plan) next="design-feature"; from="Phase 1 (Plan)"; to="Phase 2 (Design)" ;;
   design) next="write-plan"; from="Phase 2 (Design)"; to="the plan" ;;
   write-plan) next="create-task-issues"; from="The plan"; to="the task issues" ;;
+  tasks) next="build-feature"; from="Creating the task issues"; to="the build" ;;
   *) next="" ;;
 esac
 [[ -n "$feature" && -n "$next" ]] || { log "allow:not-ready"; exit 0; }

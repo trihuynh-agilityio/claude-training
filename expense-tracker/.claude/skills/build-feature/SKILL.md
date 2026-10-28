@@ -1,8 +1,7 @@
 ---
 name: build-feature
-description: Phase 3 (Build) orchestrator. Runs an approved, issue-linked plan wave by wave (one pipeline per task, two lanes in parallel), waits for the user to merge each wave's PRs and then starts the next wave on its own, and finally opens the PR to dev. Run with the feature folder name. Re-run it any time; it resumes from GitHub state.
+description: Phase 3 (Build) orchestrator, started by the Stop hook right after create-task-issues, or run by hand to resume. Use it only for a feature whose plan is approved and has sub-issues. Runs an approved, issue-linked plan wave by wave (one pipeline per task, two lanes in parallel), waits for the user to merge each wave's PRs and then starts the next wave on its own, and finally opens the PR to dev. Run with the feature folder name. Re-run it any time; it resumes from GitHub state.
 model: opus
-disable-model-invocation: true
 allowed-tools: Read Write Edit Glob Grep Agent CronCreate CronList CronDelete Bash(git status*) Bash(git log*) Bash(git branch*) Bash(git rev-parse *) Bash(git worktree *) Bash(git fetch github*) Bash(git ls-remote *) Bash(git push -u github feat/*) Bash(git push github feat/*) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(npm ci *) Bash(npm test*) Bash(npm run lint*) Bash(npm run build*)
 ---
 
@@ -111,7 +110,7 @@ Set one with `github-ops swap-label <issue> <previous status label> <new label>`
 {"feature": "<name>", "phase": "build", "status": "in_progress|waiting_review|blocked|done", "handed_off": true, "wave": 0, "tasks": {"T1": {"status": "todo|resume|waiting|done|closed", "pr": 31, "handled_feedback": [], "fix_rounds": 0}}, "loop_id": null}
 ```
 
-`handed_off` stays `true` so `next-phase.sh` ignores it; that hook only acts on `phase: plan`.
+`handed_off` stays `true` so `next-phase.sh` ignores it; that hook only starts `build-feature` from `phase: tasks`, never from `build`.
 
 ## Rules
 
