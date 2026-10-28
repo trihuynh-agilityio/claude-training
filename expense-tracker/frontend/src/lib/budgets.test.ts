@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import type { Budget, CategoryId, MonthlySummary } from '../types'
 import {
+  alertText,
+  budgetAlerts,
   budgetStatus,
   daysLeft,
+  newlyOver,
   percentUsed,
   remaining,
   safePerDay,
@@ -87,5 +91,145 @@ describe('sortByStatus', () => {
     ]
 
     expect(sortByStatus(rows).map((row) => row.id)).toEqual(['c', 'e', 'b', 'd', 'a'])
+  })
+})
+
+const MILLION = 1_000_000
+
+function budgetOf(monthly: number, categories: Partial<Record<CategoryId, number>> = {}): Budget {
+  return { month: '2026-10', source_month: '2026-10', is_own: true, monthly, categories }
+}
+
+function summaryOf(
+  spent: Partial<Record<CategoryId, number>>,
+  budget: Budget | null,
+  total?: number,
+): MonthlySummary {
+  const categories = Object.entries(spent).map(([id, amount]) => ({
+    category_id: id as CategoryId,
+    total: amount as number,
+    count: 1,
+  }))
+  return {
+    month: '2026-10',
+    total: total ?? categories.reduce((sum, row) => sum + row.total, 0),
+    count: categories.length,
+    same_day_last_month_total: 0,
+    categories,
+    budget,
+  }
+}
+
+const names = (items: { name: string }[]) => items.map((item) => item.name)
+
+describe('budgetAlerts', () => {
+  it('ignores unbudgeted categories and counts a budgeted one without a row as 0', () => {
+    const result = budgetAlerts(
+      summaryOf(
+        { food: 2 * MILLION, shopping: 9 * MILLION },
+        budgetOf(100 * MILLION, { food: MILLION, bills: MILLION }),
+      ),
+    )
+    expect(names(result.over)).toEqual(['Food & Dining'])
+    expect(result.near).toEqual([])
+  })
+
+  it('gives empty lists without a budget', () => {
+    expect(budgetAlerts(summaryOf({ food: MILLION }, null))).toEqual({ over: [], near: [] })
+  })
+
+  it('gives empty lists for a month with no expenses', () => {
+    expect(budgetAlerts(summaryOf({}, budgetOf(MILLION)))).toEqual({ over: [], near: [] })
+  })
+
+  it.each([
+    [849_999, 'none'],
+    [850_000, 'near'],
+    [1_000_000, 'near'],
+    [1_000_001, 'over'],
+  ])('spent %i of 1.000.000 is %s', (spent, expected) => {
+    const result = budgetAlerts(summaryOf({ other: spent }, budgetOf(MILLION)))
+    const where = result.over.length ? 'over' : result.near.length ? 'near' : 'none'
+    expect(where).toBe(expected)
+  })
+
+  it('orders each list by percent used, highest first', () => {
+    const result = budgetAlerts(
+      summaryOf(
+        { shopping: 900_000, bills: 950_000, transport: 1_200_000, food: 2_000_000 },
+        budgetOf(100 * MILLION, {
+          shopping: MILLION,
+          bills: MILLION,
+          transport: MILLION,
+          food: MILLION,
+        }),
+      ),
+    )
+    expect(names(result.over)).toEqual(['Food & Dining', 'Transport'])
+    expect(names(result.near)).toEqual(['Bills & Utilities', 'Shopping'])
+  })
+
+  it('puts the monthly budget among the items by percent used', () => {
+    const result = budgetAlerts(
+      summaryOf(
+        { food: 1_500_000, bills: 900_000 },
+        budgetOf(2 * MILLION, { food: MILLION, bills: MILLION }),
+      ),
+    )
+    expect(names(result.over)).toEqual(['Food & Dining', 'Monthly budget'])
+    expect(names(result.near)).toEqual(['Bills & Utilities'])
+  })
+})
+
+describe('alertText', () => {
+  it('lists over then near', () => {
+    expect(alertText(['Food & Dining', 'Monthly budget'], ['Bills & Utilities'])).toBe(
+      'Over budget: Food & Dining, Monthly budget. Near limit: Bills & Utilities.',
+    )
+  })
+  it('leaves out an empty list', () => {
+    expect(alertText(['Food & Dining'], [])).toBe('Over budget: Food & Dining.')
+    expect(alertText([], ['Bills & Utilities'])).toBe('Near limit: Bills & Utilities.')
+  })
+  it('is empty with no names', () => {
+    expect(alertText([], [])).toBe('')
+  })
+})
+
+describe('newlyOver', () => {
+  const limits = budgetOf(100 * MILLION, { food: MILLION, bills: MILLION, shopping: MILLION })
+
+  it('skips items already over budget', () => {
+    const before = summaryOf({ food: 1_200_000 }, limits)
+    expect(newlyOver(before, summaryOf({ food: 1_500_000 }, limits))).toEqual([])
+  })
+  it('skips an item that only moves to near limit', () => {
+    expect(
+      newlyOver(summaryOf({ food: 500_000 }, limits), summaryOf({ food: 900_000 }, limits)),
+    ).toEqual([])
+  })
+  it('includes an item moving from near to over', () => {
+    expect(
+      newlyOver(summaryOf({ food: 900_000 }, limits), summaryOf({ food: 1_100_000 }, limits)),
+    ).toEqual(['Food & Dining'])
+  })
+  it('includes an item that is new to after', () => {
+    const after = budgetOf(100 * MILLION, { food: MILLION, bills: 500_000 })
+    expect(
+      newlyOver(
+        summaryOf({ bills: 700_000 }, budgetOf(100 * MILLION, { food: MILLION })),
+        summaryOf({ bills: 700_000 }, after),
+      ),
+    ).toEqual(['Bills & Utilities'])
+  })
+  it('treats a before without a budget as nothing over', () => {
+    expect(
+      newlyOver(summaryOf({ food: 2 * MILLION }, null), summaryOf({ food: 2 * MILLION }, limits)),
+    ).toEqual(['Food & Dining'])
+  })
+  it('orders the result like the strip', () => {
+    const before = summaryOf({}, limits)
+    const after = summaryOf({ shopping: 1_300_000, food: 2_000_000 }, limits)
+    expect(newlyOver(before, after)).toEqual(['Food & Dining', 'Shopping'])
   })
 })
