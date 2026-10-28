@@ -1,3 +1,6 @@
+import type { MonthlySummary } from '../types'
+import { getCategory } from './categories'
+
 export type BudgetStatus = 'on-track' | 'near-limit' | 'over-budget'
 
 export const STATUS_LABELS: Record<BudgetStatus, string> = {
@@ -60,4 +63,58 @@ export function sortByStatus<T extends { spent: number; budget: number }>(rows: 
       STATUS_ORDER[budgetStatus(a.spent, a.budget)] - STATUS_ORDER[budgetStatus(b.spent, b.budget)]
     return byStatus || b.spent / b.budget - a.spent / a.budget
   })
+}
+
+/** One budget that can raise an alert: the monthly budget or a category that has its own budget. */
+export type AlertItem = { name: string; spent: number; budget: number }
+
+export const MONTHLY_BUDGET_NAME = 'Monthly budget'
+
+type KeyedItem = AlertItem & { key: string }
+
+/** Items keyed by category id (or 'monthly'), so two items that share a display name stay apart. */
+function keyedAlerts(summary: MonthlySummary): { over: KeyedItem[]; near: KeyedItem[] } {
+  const none = { over: [], near: [] }
+  const { budget } = summary
+  if (!budget || summary.count === 0) return none
+  const items: KeyedItem[] = [
+    { key: 'monthly', name: MONTHLY_BUDGET_NAME, spent: summary.total, budget: budget.monthly },
+  ]
+  for (const [id, limit] of Object.entries(budget.categories)) {
+    if (limit === undefined) continue
+    const spent = summary.categories.find((row) => row.category_id === id)?.total ?? 0
+    items.push({ key: id, name: getCategory(id).name, spent, budget: limit })
+  }
+  const valid = items.filter((item) => item.budget > 0)
+  const status = (state: BudgetStatus) =>
+    sortByStatus(valid.filter((item) => budgetStatus(item.spent, item.budget) === state))
+  return { over: status('over-budget'), near: status('near-limit') }
+}
+
+const toItem = ({ name, spent, budget }: KeyedItem): AlertItem => ({ name, spent, budget })
+
+/**
+ * The over-budget and near-limit items of a summary, each list by % used (highest first).
+ * Only the monthly budget and categories with a budget are items; a month without a budget or
+ * without expenses has none.
+ */
+export function budgetAlerts(summary: MonthlySummary): { over: AlertItem[]; near: AlertItem[] } {
+  const { over, near } = keyedAlerts(summary)
+  return { over: over.map(toItem), near: near.map(toItem) }
+}
+
+/** Names of the items over budget in `after` that were not over budget in `before`, ordered like the strip. */
+export function newlyOver(before: MonthlySummary, after: MonthlySummary): string[] {
+  const already = new Set(keyedAlerts(before).over.map((item) => item.key))
+  return keyedAlerts(after)
+    .over.filter((item) => !already.has(item.key))
+    .map((item) => item.name)
+}
+
+/** "Over budget: A, B. Near limit: C." A list with no names is left out; no names at all gives "". */
+export function alertText(over: string[], near: string[]): string {
+  const parts: string[] = []
+  if (over.length > 0) parts.push(`Over budget: ${over.join(', ')}.`)
+  if (near.length > 0) parts.push(`Near limit: ${near.join(', ')}.`)
+  return parts.join(' ')
 }
