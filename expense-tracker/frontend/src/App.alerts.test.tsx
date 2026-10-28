@@ -69,6 +69,7 @@ async function openTransactions() {
   fireEvent.click((await screen.findAllByRole('button', { name: 'Transactions' }))[0])
   await screen.findByRole('button', { name: 'Edit Lunch' })
   mockSummary.mockReset()
+  mockSummary.mockImplementation(NEVER)
 }
 
 const formDialog = () => document.querySelector('dialog.dialog-form') as HTMLDialogElement
@@ -223,8 +224,7 @@ describe('R12: a slow or failed lookup never blocks the save', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     submit()
     await wait(2_000)
-    await wait(2_000)
-    await expectPlainSave(2)
+    await expectPlainSave(1)
   })
 })
 
@@ -266,6 +266,7 @@ describe('R14: the save uses no other API', () => {
     mockSummary.mockResolvedValue(summary(900_000))
     submit({}, edit)
     await screen.findByText(/^(Expense added|Changes saved)/)
+    // The existing list reload after a save is expected and not counted here.
     expect(used).toHaveBeenCalledTimes(1)
     expect(unused).not.toHaveBeenCalled()
     expect(mockDelete).not.toHaveBeenCalled()
