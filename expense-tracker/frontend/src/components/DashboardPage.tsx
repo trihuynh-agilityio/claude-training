@@ -5,6 +5,7 @@ import { formatVND } from '../lib/money'
 import { currentMonth, formatMonthLabel, percentChange, shiftMonth } from '../lib/months'
 import type { Expense, MonthlySummary } from '../types'
 import { CategoryBreakdown } from './CategoryBreakdown'
+import { BudgetAlertStrip } from './BudgetAlertStrip'
 import { BudgetCards, BudgetInvite } from './BudgetCards'
 import { ExpenseRow } from './ExpenseRow'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, WalletIcon } from './icons'
@@ -146,6 +147,7 @@ export function DashboardPage({
               <BudgetInvite canSet={isCurrent} onSet={onOpenBudget} />
             )}
           </section>
+          <BudgetAlertStrip summary={summary} onOpenBudget={onOpenBudget} />
           <div className="dashboard-panels">
             <CategoryBreakdown categories={summary.categories} total={summary.total} />
             <section className="card panel" aria-labelledby="recent-title">
