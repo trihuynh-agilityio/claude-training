@@ -164,10 +164,62 @@ describe('save with the over-budget check', () => {
     )
     await vi.waitFor(() => expect(vi.mocked(createExpense)).toHaveBeenCalled())
     await vi.waitFor(() =>
-      expect(
-        document.querySelector('dialog.dialog-form [role="alert"], dialog.dialog-form .alert'),
-      ).not.toBeNull(),
+      expect(document.querySelector('dialog.dialog-form form .alert[role="alert"]')).not.toBeNull(),
     )
     expect(document.querySelector('.toast')).toBeNull()
+  })
+
+  it('adds no suffix when the category was already over before the save', async () => {
+    await submitForm(false, undefined, () =>
+      vi
+        .mocked(getSummary)
+        .mockResolvedValueOnce(foodSummary(1_100_000))
+        .mockResolvedValueOnce(foodSummary(1_300_000)),
+    )
+    expect(await screen.findByText('Expense added')).toBeTruthy()
+  })
+
+  it('shows plain text when the after lookup fails', async () => {
+    await submitForm(false, undefined, () =>
+      vi
+        .mocked(getSummary)
+        .mockResolvedValueOnce(foodSummary(900_000))
+        .mockRejectedValueOnce(new Error('down')),
+    )
+    expect(await screen.findByText('Expense added')).toBeTruthy()
+    expect(vi.mocked(getSummary)).toHaveBeenCalledTimes(2)
+  })
+
+  it('writes once when submit is clicked again during a slow before lookup', async () => {
+    let release: (summary: MonthlySummary) => void = () => {}
+    await submitForm(false, undefined, () =>
+      vi
+        .mocked(getSummary)
+        .mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
+        .mockResolvedValue(foodSummary(900_000)),
+    )
+    const button = within(document.querySelector('dialog.dialog-form') as HTMLElement).getByRole(
+      'button',
+      { name: 'Saving…' },
+    )
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(button)
+    release(foodSummary(900_000))
+    expect(await screen.findByText('Expense added')).toBeTruthy()
+    expect(vi.mocked(createExpense)).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up on lookups after 2 s and still saves with a plain toast', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      await submitForm(false, undefined, () =>
+        vi.mocked(getSummary).mockReturnValue(new Promise(() => {})),
+      )
+      await vi.advanceTimersByTimeAsync(2100)
+      expect(vi.mocked(createExpense)).toHaveBeenCalledTimes(1)
+      expect(await screen.findByText('Expense added')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

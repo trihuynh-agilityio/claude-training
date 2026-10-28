@@ -104,11 +104,13 @@ function App() {
     else await createExpense(input)
     setForm(null)
     bumpVersion()
+    // Refresh the list now; the after lookup can take up to 2 s.
+    const reload = load()
     const after = before ? await lookup(month) : null
     const over = before && after ? newlyOver(before, after) : []
     const base = editing ? 'Changes saved' : 'Expense added'
     setToast(over.length > 0 ? `${base}. ${alertText(over, [])}` : base)
-    await load()
+    await reload
   }
 
   function askDelete(expense: Expense) {
