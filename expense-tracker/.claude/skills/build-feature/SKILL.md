@@ -87,7 +87,7 @@ Reached when `ACTION=finish`, or when the only unfinished task is the integratio
 2. Check `git diff --stat dev...<integration branch>` touches only files from the plan plus this feature's docs.
 3. `github-ops find-pr <integration branch>`; if a PR exists, reuse it. Otherwise write the body to `<project root>/.claude/workflow/pr-final.md`: the `pr-description` output for `dev...<integration branch>` (base `dev`, skip its step 4 and title), then a table of the task PRs (task, title, PR link), the acceptance table from plan.md (requirement, task, test), the suite result, and as the last line `Created by workflow; review and merge by a human.`. Then `github-ops create-pr` with head = the integration branch, base = `dev`, title = `Feature: <H1 of intent.md without "Intent: ">`.
 4. `github-ops comment` on the feature issue (found with `find-issue`) listing the task PRs and the final PR, then `swap-label` `phase:tasks-ready` to `phase:build-done`.
-5. State: phase `build`, status `done`, `loop_id` null. Remove the worktree of the integration branch. Do not commit, do not start another phase.
+5. State: phase `build`, status `done`, `handed_off` **false** (this is what lets the `Stop` hook start `verify-feature`; only this step ever writes false, and only here are all task PRs merged and the final PR open), `loop_id` null. Remove the worktree of the integration branch. Do not commit, do not start another phase.
 
 ## Task labels
 
@@ -110,7 +110,7 @@ Set one with `github-ops swap-label <issue> <previous status label> <new label>`
 {"feature": "<name>", "phase": "build", "status": "in_progress|waiting_review|blocked|done", "handed_off": true, "wave": 0, "tasks": {"T1": {"status": "todo|resume|waiting|done|closed", "pr": 31, "handled_feedback": [], "fix_rounds": 0}}, "loop_id": null}
 ```
 
-`handed_off` stays `true` so `next-phase.sh` ignores it; that hook only starts `build-feature` from `phase: tasks`, never from `build`.
+`handed_off` is `true` while the build runs, so `next-phase.sh` ignores it. Only step 5 (status `done`) writes `false`; the hook then starts `verify-feature` once.
 
 ## Rules
 
