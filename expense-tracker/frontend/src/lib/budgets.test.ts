@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Budget, CategoryId, MonthlySummary } from '../types'
+import type { Budget, MonthlySummary } from '../types'
+import type { CategoryId } from './categories'
 import {
   alertText,
   budgetAlerts,
