@@ -232,11 +232,11 @@ describe('R12: a failed or slow lookup never blocks the save', () => {
   const down = () => Promise.reject(new Error('down'))
   const ok = (food: number) => () => Promise.resolve(summary(thisMonth, { food }))
   it.each([
-    ['the before lookup rejects', false, down, ok(1_100_000)],
-    ['the after lookup rejects', false, ok(900_000), down],
-    ['the before lookup never answers', true, never, ok(1_100_000)],
-    ['the after lookup never answers', true, ok(900_000), never],
-  ])('saves with the plain text when %s', async (_name, slow, before, after) => {
+    ['the before lookup rejects', false, down, ok(1_100_000), 1],
+    ['the after lookup rejects', false, ok(900_000), down, 2],
+    ['the before lookup never answers', true, never, ok(1_100_000), 1],
+    ['the after lookup never answers', true, ok(900_000), never, 2],
+  ])('saves with the plain text when %s', async (_name, slow, before, after, calls) => {
     if (slow) vi.useFakeTimers({ shouldAdvanceTime: true })
     await openTransactions()
     mockSummary.mockImplementationOnce(before).mockImplementationOnce(after)
@@ -244,7 +244,7 @@ describe('R12: a failed or slow lookup never blocks the save', () => {
     if (slow) await act(() => vi.advanceTimersByTimeAsync(2000))
     expect(await toastText()).toBe('Expense added')
     expect(mockCreate).toHaveBeenCalledTimes(1)
-    expect(mockSummary).toHaveBeenCalledTimes(2)
+    expect(mockSummary).toHaveBeenCalledTimes(calls)
     expect(document.querySelector('dialog')).toBeNull()
     expect(screen.queryByText(/couldn.?t|error|failed/i)).toBeNull()
   })
