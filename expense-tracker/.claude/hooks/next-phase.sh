@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# Stop hook: when Phase 1 (Plan) finished and was not handed off yet, block the stop once
-# and tell Claude to run Phase 2 (design-feature). State: .claude/workflow/state.json.
+# Stop hook: when a phase finished and was not handed off yet, block the stop once and tell
+# Claude to run the next skill. State: .claude/workflow/state.json. The table:
+#   plan       / done / handed_off=false -> design-feature       (Phase 1 -> Phase 2)
+#   design     / done / handed_off=false -> write-plan           (Phase 2 -> Phase 3)
+#   write-plan / done / handed_off=false -> create-task-issues   (asks the user to approve the plan)
+# Anything else (tasks, build, waiting_review, blocked, done) never advances: build-feature is user-run.
 # Appends one line per run to .claude/workflow/hook.log. Any problem allows the stop.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -19,8 +23,16 @@ command -v jq >/dev/null 2>&1 || { log "allow:no-jq"; exit 0; }
 [[ -f "$STATE" ]] || { log "allow:no-state"; exit 0; }
 [[ "$(jq -r '.stop_hook_active // false' <<<"$input" 2>/dev/null)" == "true" ]] && { log "allow:stop-hook-active"; exit 0; }
 
-feature="$(jq -r 'select(.phase == "plan" and .status == "done" and .handed_off == false) | .feature' "$STATE" 2>/dev/null)"
-[[ -n "$feature" ]] || { log "allow:not-ready"; exit 0; }
+row="$(jq -r 'select(.status == "done" and .handed_off == false) | [.feature, .phase] | @tsv' "$STATE" 2>/dev/null)"
+feature="${row%%$'\t'*}"
+phase="${row#*$'\t'}"
+case "$phase" in
+  plan) next="design-feature"; from="Phase 1 (Plan)"; to="Phase 2 (Design)" ;;
+  design) next="write-plan"; from="Phase 2 (Design)"; to="the plan" ;;
+  write-plan) next="create-task-issues"; from="The plan"; to="the task issues" ;;
+  *) next="" ;;
+esac
+[[ -n "$feature" && -n "$next" ]] || { log "allow:not-ready"; exit 0; }
 
 # Mark the hand-off before blocking so a second Stop can never repeat it.
 tmp="$(mktemp)"
@@ -32,7 +44,7 @@ else
   exit 0
 fi
 
-log "block:handoff-to-design"
-jq -n --arg r "Phase 1 (Plan) is done for \"$feature\". Start Phase 2 now: invoke the design-feature skill with the argument \"$feature\"." \
+log "block:handoff-to-$next"
+jq -n --arg r "$from is done for \"$feature\". Start $to now: invoke the $next skill with the argument \"$feature\"." \
   '{decision: "block", reason: $r}'
 exit 0

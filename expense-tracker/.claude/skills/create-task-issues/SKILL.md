@@ -1,8 +1,7 @@
 ---
 name: create-task-issues
-description: Phase 3 (Build) step after the plan is written. Turns each task of an approved plan into a GitHub sub-issue of the feature issue and writes the numbers back into the plan. Run with the feature folder name.
+description: Phase 3 (Build) step, started by the Stop hook right after write-plan (or run by hand when the plan exists). Turns each task of an approved plan into a GitHub sub-issue of the feature issue and writes the numbers back into the plan. Run with the feature folder name.
 model: sonnet
-disable-model-invocation: true
 allowed-tools: Read Edit Write Glob Agent AskUserQuestion
 ---
 

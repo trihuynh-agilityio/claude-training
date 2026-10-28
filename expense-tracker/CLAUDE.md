@@ -30,7 +30,7 @@ Phase 1 (Plan) is the `plan-feature` skill (`.claude/skills/plan-feature/`): `gr
 
 ## Next phase hook
 
-`.claude/settings.json` also registers a `Stop` hook (`.claude/hooks/next-phase.sh`). When `plan-feature` has written `.claude/workflow/state.json` with `phase: plan`, `status: done`, `handed_off: false`, the hook marks it handed off and blocks the stop once, telling Claude to run `design-feature`. Each run appends a line to `.claude/workflow/hook.log`. Both files are git-ignored. `settings.json` also allows the `gh issue` and `gh label` commands that `github-ops` runs.
+`.claude/settings.json` also registers a `Stop` hook (`.claude/hooks/next-phase.sh`). It reads `.claude/workflow/state.json`; when a phase is `done` with `handed_off: false` it marks it handed off and blocks the stop once, telling Claude to run the next skill: `plan` starts `design-feature`, `design` starts `write-plan`, `write-plan` starts `create-task-issues` (which asks you to approve the plan before it creates any issue). `tasks`, `build`, `waiting_review`, `blocked` and `done` never advance, so `build-feature` stays user-run. Each run appends a line to `.claude/workflow/hook.log`. Both files are git-ignored. `settings.json` also allows the `gh issue` and `gh label` commands that `github-ops` runs.
 
 ## Git workflow
 

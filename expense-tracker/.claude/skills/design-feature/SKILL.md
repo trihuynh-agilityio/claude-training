@@ -48,4 +48,10 @@ Call the `github-ops` agent once per operation:
 
 ## 8. Finish
 
-Report the spec path and the issue number and URL. Do not commit, push, or start the next phase.
+Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `write-plan`:
+
+```json
+{"feature": "<feature-name>", "phase": "design", "status": "done", "handed_off": false}
+```
+
+Report the spec path and the issue number and URL. Do not commit or push. The plan is started by the `Stop` hook (`.claude/hooks/next-phase.sh`), not here.
