@@ -154,6 +154,42 @@ describe('budgetAlerts', () => {
     expect(where).toBe(expected)
   })
 
+  it.each([
+    [849_999, 'none'],
+    [850_000, 'near'],
+    [1_000_000, 'near'],
+    [1_000_001, 'over'],
+  ])('a category spent %i of 1.000.000 is %s', (spent, expected) => {
+    const result = budgetAlerts(
+      summaryOf({ food: spent }, budgetOf(100 * MILLION, { food: MILLION })),
+    )
+    const where = result.over.length ? 'over' : result.near.length ? 'near' : 'none'
+    expect(where).toBe(expected)
+  })
+
+  it('skips a monthly or category budget of 0 or less', () => {
+    for (const limit of [0, -5]) {
+      const result = budgetAlerts(summaryOf({ food: MILLION }, budgetOf(limit, { food: limit })))
+      expect(result).toEqual({ over: [], near: [] })
+    }
+  })
+
+  it('gives no strip when count is 0 even if the total is above 0', () => {
+    const summary = { ...summaryOf({}, budgetOf(MILLION), 2 * MILLION), count: 0 }
+    expect(budgetAlerts(summary)).toEqual({ over: [], near: [] })
+  })
+
+  it('skips a category whose limit is undefined', () => {
+    const budget = budgetOf(100 * MILLION, { food: undefined })
+    expect(budgetAlerts(summaryOf({ food: 5 * MILLION }, budget))).toEqual({ over: [], near: [] })
+  })
+
+  it('breaks a tie on percent used with the monthly budget first, then the budget key order', () => {
+    const budget = budgetOf(2 * MILLION, { shopping: MILLION, food: MILLION })
+    const result = budgetAlerts(summaryOf({ food: MILLION, shopping: MILLION }, budget))
+    expect(names(result.near)).toEqual(['Monthly budget', 'Shopping', 'Food & Dining'])
+  })
+
   it('orders each list by percent used, highest first', () => {
     const result = budgetAlerts(
       summaryOf(
@@ -232,5 +268,21 @@ describe('newlyOver', () => {
     const before = summaryOf({}, limits)
     const after = summaryOf({ shopping: 1_300_000, food: 2_000_000 }, limits)
     expect(newlyOver(before, after)).toEqual(['Food & Dining', 'Shopping'])
+  })
+  it('tells apart two items that share a display name', () => {
+    // An unknown id falls back to the name "Other", the same as the real "other" category.
+    const unknown = { other: MILLION, mystery: MILLION } as unknown as Partial<
+      Record<CategoryId, number>
+    >
+    const budget = budgetOf(100 * MILLION, unknown)
+    const before = summaryOf({ other: 2 * MILLION }, budget)
+    const after = {
+      ...before,
+      categories: [
+        ...before.categories,
+        { category_id: 'mystery' as CategoryId, total: 2 * MILLION, count: 1 },
+      ],
+    }
+    expect(newlyOver(before, after)).toEqual(['Other'])
   })
 })
