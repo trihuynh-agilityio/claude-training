@@ -136,6 +136,24 @@ describe('save with the over-budget check', () => {
     expect(await screen.findByText('Expense added. Over budget: Food & Dining.')).toBeTruthy()
   })
 
+  it('starts the before lookup ahead of the write', async () => {
+    await submitForm(false, undefined, () =>
+      vi.mocked(getSummary).mockResolvedValue(foodSummary(900_000)),
+    )
+    await screen.findByText(/Expense added/)
+    const lookupOrder = vi.mocked(getSummary).mock.invocationCallOrder[0]
+    expect(lookupOrder).toBeLessThan(vi.mocked(createExpense).mock.invocationCallOrder[0])
+  })
+
+  it('starts the before lookup ahead of an edit write', async () => {
+    await submitForm(true, undefined, () =>
+      vi.mocked(getSummary).mockResolvedValue(foodSummary(900_000)),
+    )
+    await screen.findByText(/Changes saved/)
+    const lookupOrder = vi.mocked(getSummary).mock.invocationCallOrder[0]
+    expect(lookupOrder).toBeLessThan(vi.mocked(updateExpense).mock.invocationCallOrder[0])
+  })
+
   it('looks up the month of the edited date', async () => {
     const past = addDays(TODAY, -40)
     const month = past.slice(0, 7)

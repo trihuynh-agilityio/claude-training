@@ -99,6 +99,9 @@ function App() {
   async function save(input: ExpenseInput) {
     const month = input.date.slice(0, 7)
     // Start the before lookup now but never wait for it before writing; lookup() cannot reject.
+    // Accepted race: if the server builds this summary after committing the write, it already
+    // includes the new expense and that save's alert is missed (never a false alert). The dialog
+    // must close as soon as the write succeeds, so it does not wait for the lookup.
     const beforeLookup = lookup(month)
     const editing = form?.mode === 'edit'
     if (editing) await updateExpense(form.expense.id, input)
