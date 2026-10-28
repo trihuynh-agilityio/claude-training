@@ -98,7 +98,8 @@ function App() {
   // Errors propagate to the form, which keeps the dialog open and shows them.
   async function save(input: ExpenseInput) {
     const month = input.date.slice(0, 7)
-    const before = await lookup(month)
+    // Start the before lookup now but never wait for it before writing; lookup() cannot reject.
+    const beforeLookup = lookup(month)
     const editing = form?.mode === 'edit'
     if (editing) await updateExpense(form.expense.id, input)
     else await createExpense(input)
@@ -106,6 +107,7 @@ function App() {
     bumpVersion()
     // Refresh the list now; the after lookup can take up to 2 s.
     const reload = load()
+    const before = await beforeLookup
     const after = before ? await lookup(month) : null
     const over = before && after ? newlyOver(before, after) : []
     const base = editing ? 'Changes saved' : 'Expense added'

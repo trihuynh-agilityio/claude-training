@@ -190,13 +190,11 @@ describe('save with the over-budget check', () => {
     expect(vi.mocked(getSummary)).toHaveBeenCalledTimes(2)
   })
 
-  it('writes once when submit is clicked again during a slow before lookup', async () => {
-    let release: (summary: MonthlySummary) => void = () => {}
+  it('writes once when submit is clicked again during a slow write', async () => {
+    let finish: (expense: Expense) => void = () => {}
+    vi.mocked(createExpense).mockReturnValue(new Promise((resolve) => (finish = resolve)))
     await submitForm(false, undefined, () =>
-      vi
-        .mocked(getSummary)
-        .mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
-        .mockResolvedValue(foodSummary(900_000)),
+      vi.mocked(getSummary).mockResolvedValue(foodSummary(900_000)),
     )
     const button = within(document.querySelector('dialog.dialog-form') as HTMLElement).getByRole(
       'button',
@@ -204,7 +202,7 @@ describe('save with the over-budget check', () => {
     )
     expect((button as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(button)
-    release(foodSummary(900_000))
+    finish({ ...LUNCH, id: 2 })
     expect(await screen.findByText('Expense added')).toBeTruthy()
     expect(vi.mocked(createExpense)).toHaveBeenCalledTimes(1)
   })
@@ -215,8 +213,11 @@ describe('save with the over-budget check', () => {
       await submitForm(false, undefined, () =>
         vi.mocked(getSummary).mockReturnValue(new Promise(() => {})),
       )
-      await vi.advanceTimersByTimeAsync(2100)
+      // The write does not wait for the lookup: the dialog is closed and no toast shows yet.
+      await vi.waitFor(() => expect(document.querySelector('dialog.dialog-form')).toBeNull())
       expect(vi.mocked(createExpense)).toHaveBeenCalledTimes(1)
+      expect(screen.queryByText('Expense added')).toBeNull()
+      await vi.advanceTimersByTimeAsync(2100)
       expect(await screen.findByText('Expense added')).toBeTruthy()
     } finally {
       vi.useRealTimers()
