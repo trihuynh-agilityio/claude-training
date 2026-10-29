@@ -215,6 +215,15 @@ describe('DashboardPage', () => {
     expect(handlers.onViewAll).toHaveBeenCalled()
   })
 
+  it('duplicates the recent row that was clicked', async () => {
+    mockGetSummary.mockResolvedValue(summary())
+    renderPage()
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Duplicate Phở bò' }))
+
+    expect(handlers.onDuplicate).toHaveBeenCalledWith(EXPENSES[0])
+  })
+
   describe('budget', () => {
     const budget = (overrides = {}) => ({
       month: OCTOBER,

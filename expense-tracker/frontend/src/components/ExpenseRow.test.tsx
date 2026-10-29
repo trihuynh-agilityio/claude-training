@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import '../test/setup'
+import { formatVND } from '../lib/money'
 import type { Expense } from '../types'
 import { ExpenseRow } from './ExpenseRow'
 
@@ -51,7 +52,7 @@ describe('ExpenseRow duplicate button', () => {
   it('is named after the amount when there is no note', () => {
     renderRow({ note: null })
 
-    expect(screen.getByRole('button', { name: /^Duplicate expense of / })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: `Duplicate expense of ${formatVND(expense.amount)}` })).toBeInTheDocument()
   })
 
   it('calls onDuplicate with the expense and is not a danger button', () => {

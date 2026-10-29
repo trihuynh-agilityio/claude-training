@@ -120,3 +120,11 @@ describe('TransactionsPage export', () => {
     expect(handlers.onExported).toHaveBeenLastCalledWith('Exported 1 expense')
   })
 })
+
+describe('TransactionsPage duplicate', () => {
+  it('passes the clicked row to onDuplicate', async () => {
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Duplicate Phở bò' }))
+    expect(handlers.onDuplicate).toHaveBeenCalledWith(EXPENSES[1])
+  })
+})
