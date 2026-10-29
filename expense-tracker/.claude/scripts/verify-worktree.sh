@@ -8,8 +8,7 @@
 #   what would land in dev. A conflict aborts the merge and exits 3 (the worktree is removed).
 #   Prints KEY=value lines: WORKTREE, INTEGRATION_HEAD, DEV_HEAD, MERGED (yes|no).
 # remove: removes the worktree and the local verify/<feature-name> branch (and the report worktree
-#   left by publish-verification.sh, if any) and the verify-sim/dev-<feature> branch of verify-simulate.sh.
-# VERIFY_DEV_REF (test aid, only a verify-sim/* branch) makes create merge that ref instead of github/dev.
+#   left by publish-verification.sh, if any).
 # This is the only place a merge is allowed; it refuses any path outside .claude/worktrees/verify-*.
 
 set -euo pipefail
@@ -30,11 +29,7 @@ remove() {
     [[ -d "$p" ]] && git -C "$top" worktree remove --force "$p"
   done
   git -C "$top" worktree prune
-  local b branches=("$tmp_branch")
-  [[ "$action" == remove ]] && branches+=("verify-sim/dev-$feature")   # create keeps the simulated dev ref
-  for b in "${branches[@]}"; do
-    git -C "$top" show-ref --verify --quiet "refs/heads/$b" && git -C "$top" branch -D "$b" >/dev/null
-  done
+  git -C "$top" show-ref --verify --quiet "refs/heads/$tmp_branch" && git -C "$top" branch -D "$tmp_branch" >/dev/null
   return 0
 }
 
@@ -45,8 +40,7 @@ if [[ "$action" == remove ]]; then
 fi
 
 [[ "$branch" == feat/* ]] || { echo "verify-worktree: integration branch must be feat/*, got '$branch'" >&2; exit 2; }
-dev_ref="${VERIFY_DEV_REF:-github/dev}"
-[[ "$dev_ref" == github/dev || "$dev_ref" == verify-sim/* ]] || { echo "verify-worktree: VERIFY_DEV_REF must be a verify-sim/* branch" >&2; exit 2; }
+dev_ref=github/dev
 remove   # idempotent: start from nothing
 
 git -C "$top" fetch -q github dev
