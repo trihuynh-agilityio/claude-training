@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import './test/setup'
 import { createExpense, listExpenses, updateExpense } from './api/expenses'
 import { generateRecurring } from './api/recurring'
 import { getSummary } from './api/summary'
 import App from './App'
-import { addDays, todayISO } from './lib/dates'
+import { addDays } from './lib/dates'
 import { formatVND } from './lib/money'
 import type { Expense, MonthlySummary } from './types'
 
@@ -26,7 +26,8 @@ HTMLDialogElement.prototype.close = function () {
   this.removeAttribute('open')
 }
 
-const TODAY = todayISO()
+// Date is pinned in beforeEach, so a run crossing midnight cannot change these.
+const TODAY = '2026-06-15'
 const OLD = addDays(TODAY, -10)
 
 const LUNCH: Expense = {
@@ -84,6 +85,8 @@ async function openDuplicate(name: RegExp | string) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
   vi.resetAllMocks()
   vi.mocked(listExpenses).mockResolvedValue([LUNCH, BUS, RENT])
   vi.mocked(generateRecurring).mockResolvedValue({ added: 0 })
@@ -96,6 +99,10 @@ beforeEach(() => {
     created_at: `${TODAY}T10:00:00`,
   }))
   vi.mocked(updateExpense).mockResolvedValue(LUNCH)
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('duplicate form', () => {
@@ -135,6 +142,7 @@ describe('saving a duplicate', () => {
     expect(await screen.findByText('Enter an amount.')).toBeTruthy()
     expect(screen.getByText('Fix 1 field to save this expense.')).toBeTruthy()
     expect(createExpense).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(dialog().getByLabelText('Amount'))
   })
 
   it('R8: a changed amount is what gets saved', async () => {
@@ -187,6 +195,14 @@ describe('saving a duplicate', () => {
   it('R11: Cancel closes with no save and no toast', async () => {
     await openDuplicate('Duplicate Lunch with team')
     fireEvent.click(dialog().getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(document.querySelector('dialog.dialog-form')).toBeNull())
+    expect(createExpense).not.toHaveBeenCalled()
+    expect(document.querySelector('.toast')).toBeNull()
+  })
+
+  it('R11: the Close (X) button closes with no save and no toast', async () => {
+    await openDuplicate('Duplicate Lunch with team')
+    fireEvent.click(dialog().getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(document.querySelector('dialog.dialog-form')).toBeNull())
     expect(createExpense).not.toHaveBeenCalled()
     expect(document.querySelector('.toast')).toBeNull()
