@@ -7,7 +7,7 @@ allowed-tools: Read Edit Write Glob Agent AskUserQuestion
 
 # Create the task issues
 
-One sub-issue per task of `docs/features/<feature-name>/plan.md`, linked to the feature issue, then the numbers written back into the plan. It builds nothing: no commit, no push, no implementation.
+One sub-issue per task of `docs/features/<feature-name>/plan.md`, linked to the feature issue, then the numbers written back into the plan. It builds nothing: no push and no implementation; its only commit is the approved plan on the integration branch (step 4).
 
 Argument: `<feature-name>`, the folder under `docs/features/`.
 
@@ -44,6 +44,8 @@ For each task that now has a number, `Edit` plan.md:
 
 This is the only edit allowed on an approved plan. Change nothing else in it.
 
+Then commit the approved plan, numbers included, to the feature's integration branch: `.claude/scripts/commit-feature-doc.sh <feature-name> <feature issue number> plan.md`. It never pushes and leaves the current checkout untouched. If it fails, tell the user and carry on.
+
 ## 5. Update the feature issue
 
 Tell the user which phase label the feature issue has now (from step 2). Then call `github-ops`:
@@ -59,4 +61,4 @@ Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed
 {"feature": "<feature-name>", "phase": "tasks", "status": "done", "handed_off": false}
 ```
 
-Report a table: task, issue number, branch name, and any failures. Do not commit, push, or start implementation yourself: the `Stop` hook starts `build-feature`.
+Report a table: task, issue number, branch name, and any failures. Do not push or start implementation yourself: the `Stop` hook starts `build-feature`.

@@ -31,7 +31,13 @@ Hand this step to the `github-ops` agent (`.claude/agents/github-ops.md`), which
 - The issue leaves Phase 1 labeled `feature` and `phase:plan-done`; Phase 2 starts from that label.
 - Take the issue URL from its report. If it reports the intent is not approved or the create failed, tell the user and stop.
 
-## 5. Finish
+## 5. Commit the intent to the feature branch
+
+The approved intent lands on the feature's integration branch `feat/<issue-number>-<feature-name>`, the same branch `write-plan` names as every task's `PR target:`. Run `.claude/scripts/commit-feature-doc.sh <feature-name> <issue-number> intent.md`. It creates the branch from `dev` if missing and commits through a temporary worktree, so the current checkout and its branch stay untouched. Keep its `BRANCH=` and `COMMIT=` lines for the report.
+
+It never pushes: `build-feature` pushes the integration branch once, before the first task PR. If it fails, tell the user and continue to step 6.
+
+## 6. Finish
 
 Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed) with exactly this content, so the `Stop` hook starts Phase 2:
 
@@ -39,4 +45,4 @@ Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed
 {"feature": "<feature-name>", "phase": "plan", "status": "done", "handed_off": false}
 ```
 
-Then report the intent path and the issue URL. Do not commit or push. Phase 2 is started by the `Stop` hook (`.claude/hooks/next-phase.sh`), not here.
+Then report the intent path, the issue URL and the commit on the feature branch. Do not push. Phase 2 is started by the `Stop` hook (`.claude/hooks/next-phase.sh`), not here.

@@ -39,6 +39,8 @@ Call the `spec-reviewer` agent with the intent path, the spec path and the stand
 
 Show the user the spec path, its Open questions, and any findings still open after step 5 (`Intent:` findings, or findings left when the rounds ran out), saying which. Ask with `AskUserQuestion`: approve, or change something. On changes, edit the spec and run the reviewer again. Do not continue without a clear approval. Then set `Status: approved.` in place of the status on line 2 with `Edit`.
 
+Commit the approved spec to the feature's integration branch: `.claude/scripts/commit-feature-doc.sh <feature-name> <issue-number from step 1> spec.md`. It never pushes and leaves the current checkout untouched. If it fails, tell the user and carry on.
+
 ## 7. Hand off
 
 Call the `github-ops` agent once per operation:
