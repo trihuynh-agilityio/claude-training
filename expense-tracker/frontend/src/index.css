@@ -548,6 +548,25 @@ input {
   margin-top: 2px;
 }
 
+/* Dashboard budget alert strip */
+.alert-strip {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-tile);
+}
+
+.alert-strip.is-near {
+  background: #fdf0dc;
+  color: #8f4a00;
+}
+
+.alert-strip-text {
+  flex: 1 1 200px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Dialogs */
 .dialog {
   width: calc(100% - 32px);
