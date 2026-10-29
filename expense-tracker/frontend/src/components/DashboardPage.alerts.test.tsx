@@ -48,6 +48,7 @@ function summary(
 const handlers = {
   onAdd: vi.fn(),
   onEdit: vi.fn(),
+  onDuplicate: vi.fn(),
   onDelete: vi.fn(),
   onViewAll: vi.fn(),
   onOpenBudget: vi.fn(),

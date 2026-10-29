@@ -29,6 +29,7 @@ const EXPENSES = [expense(3, 'Grab to office'), expense(2, 'Phở bò'), expense
 const handlers = {
   onAdd: vi.fn(),
   onEdit: vi.fn(),
+  onDuplicate: vi.fn(),
   onDelete: vi.fn(),
   onRetry: vi.fn(),
   onExported: vi.fn(),
