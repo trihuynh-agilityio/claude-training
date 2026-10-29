@@ -7,6 +7,7 @@ import { generateRecurring } from './api/recurring'
 import { getSummary } from './api/summary'
 import App from './App'
 import { addDays, todayISO } from './lib/dates'
+import { formatVND } from './lib/money'
 import type { Expense, MonthlySummary } from './types'
 
 vi.mock('./api/expenses', () => ({
@@ -64,6 +65,10 @@ function summary(): MonthlySummary {
     categories: [],
     budget: null,
   }
+}
+
+function expensesList() {
+  return within(screen.getByRole('region', { name: 'Expenses' }))
 }
 
 function dialog() {
@@ -160,10 +165,16 @@ describe('saving a duplicate', () => {
     })
     expect(updateExpense).not.toHaveBeenCalled()
     await screen.findByText('Expense added')
-    expect(screen.getAllByRole('button', { name: 'Edit Lunch with team' })).toHaveLength(2)
-    // The original keeps its amount and its own date group.
-    expect(screen.getAllByText('120.000').length).toBeGreaterThanOrEqual(2)
-    expect(updateExpense).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(expensesList().getAllByRole('button', { name: 'Edit Lunch with team' })).toHaveLength(
+        2,
+      ),
+    )
+    // The original keeps its amount: both the original row and the copy show it.
+    const amounts = Array.from(
+      document.querySelectorAll('section[aria-label="Expenses"] .expense-amount'),
+    ).map((el) => el.textContent)
+    expect(amounts.filter((a) => a === formatVND(120_000))).toHaveLength(2)
   })
 
   it('R10: closes the dialog and shows the toast', async () => {
@@ -207,8 +218,10 @@ describe('saving a duplicate', () => {
     expect(vi.mocked(createExpense).mock.calls[0][0]).not.toHaveProperty('recurring_id')
     await screen.findByText('Expense added')
     // Only the original Rent row keeps its badge; the new row has none.
-    expect(screen.getAllByText('Rent')).toHaveLength(2)
-    expect(screen.getAllByText('Recurring')).toHaveLength(1)
+    await waitFor(() => expect(expensesList().getAllByText('Rent')).toHaveLength(2))
+    expect(
+      document.querySelectorAll('section[aria-label="Expenses"] .recurring-badge'),
+    ).toHaveLength(1)
   })
 
   it('a failed save keeps the dialog open with the error and no toast', async () => {
