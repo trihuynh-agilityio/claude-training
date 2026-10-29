@@ -34,7 +34,7 @@ Then write the state file (see "State").
    - `start`: go to step 3 for the listed tasks.
    - `wait`: go to step 4.
    - `finish`: go to step 5.
-3. Update the state's wave and per-task statuses from the output. Label every `done` task whose state did not say `done` before `status:done` (see "Task labels").
+3. Update the state's wave and per-task statuses from the output. Label every `done` task whose state did not say `done` before `status:done` and close its sub-issue (see "Task labels").
 
 ## 3. Wave start
 
@@ -57,7 +57,7 @@ A task with no PR of its own (T7: "no commit and no task PR if nothing to change
 
 When every task of the wave has an OPEN PR: set status `waiting_review`, show the PR links, and tell the user to review and merge them on GitHub.
 
-Then watch them. Call `CronCreate` for every 10 minutes with this plain-text prompt (never a skill call, because a scheduled run cannot invoke a user-only skill): "Call github-ops get-pr-state for <the wave's branches>; the states last seen are <the states now>. For each PR that is newly MERGED, call github-ops swap-label on its task's issue <issue numbers per branch> from status:in-review to status:done. If every PR is MERGED, call CronDelete <id>, set state status to in_progress and loop_id to null, say in one line that wave <n> is merged, then read <project root>/.claude/skills/build-feature/SKILL.md and carry it out for <feature-name> from step 1, as if the user had run it: start the next wave, or finish. If any PR is CLOSED without merge, swap its task's label from status:in-review to status:blocked, call CronDelete <id>, set state status to blocked and tell the user which one. For each PR still OPEN, call github-ops get-pr-feedback with its number and the ids in state tasks.<task>.handled_feedback; if it returns new feedback, read <project root>/.claude/skills/build-feature/SKILL.md and carry out step 4b for that task. Reply with nothing only if no state changed and no feedback was handled." Save the cron id in `state.loop_id`. Say that the watch only runs while this session is open and idle and lasts at most 7 days.
+Then watch them. Call `CronCreate` for every 10 minutes with this plain-text prompt (never a skill call, because a scheduled run cannot invoke a user-only skill): "Call github-ops get-pr-state for <the wave's branches>; the states last seen are <the states now>. For each PR that is newly MERGED, call github-ops swap-label on its task's issue <issue numbers per branch> from status:in-review to status:done, then github-ops close-issue on that same issue. If every PR is MERGED, call CronDelete <id>, set state status to in_progress and loop_id to null, say in one line that wave <n> is merged, then read <project root>/.claude/skills/build-feature/SKILL.md and carry it out for <feature-name> from step 1, as if the user had run it: start the next wave, or finish. If any PR is CLOSED without merge, swap its task's label from status:in-review to status:blocked, call CronDelete <id>, set state status to blocked and tell the user which one. For each PR still OPEN, call github-ops get-pr-feedback with its number and the ids in state tasks.<task>.handled_feedback; if it returns new feedback, read <project root>/.claude/skills/build-feature/SKILL.md and carry out step 4b for that task. Reply with nothing only if no state changed and no feedback was handled." Save the cron id in `state.loop_id`. Say that the watch only runs while this session is open and idle and lasts at most 7 days.
 
 So the build moves on by itself: merging a wave's PRs starts the next wave, and the last wave's merge leads to step 5. The user is only needed at the decision points: reviewing and merging each wave's PRs, the final PR to `dev`, and any `blocked` stop. A rerun of `/build-feature <feature-name>` still works at any time.
 
@@ -81,7 +81,7 @@ Run by the watch when `get-pr-feedback` returns new feedback on an OPEN task PR.
 
 ## 5. Finish
 
-Reached when `ACTION=finish`, or when the only unfinished task is the integration task (T7). Label T7 `status:in-progress` first; it goes to `status:done` when its check passes, or to `status:blocked`.
+Reached when `ACTION=finish`, or when the only unfinished task is the integration task (T7). Label T7 `status:in-progress` first; it goes to `status:done` (and its issue is closed) when its check passes, or to `status:blocked`.
 
 1. In a worktree of the integration branch (`git worktree add <repo root>/.claude/worktrees/<name with - for /> <name>`, then `npm ci --prefer-offline` in `frontend/`), run the plan's commands once: `npm test`, `npm run lint`, `npm run build`. If anything fails, set status `blocked`, report the output and stop. On success, add `CHECK T7 PASS` to the states file.
 2. Check `git diff --stat dev...<integration branch>` touches only files from the plan plus this feature's docs.
@@ -100,7 +100,7 @@ Each task sub-issue (its `Issue:` in the plan) carries one status label beside `
 | `status:done` | its PR is merged (T7: the check passed) |
 | `status:blocked` | its lane is BLOCKED or FAILED, its PR was closed without merge, or the T7 check failed |
 
-Set one with `github-ops swap-label <issue> <previous status label> <new label>`; the previous one is the label of the row before (any status label the issue has, if unsure). `swap-label` creates a missing label and still adds the new one when the old one is absent. Labels never close an issue.
+Set one with `github-ops swap-label <issue> <previous status label> <new label>`; the previous one is the label of the row before (any status label the issue has, if unsure). `swap-label` creates a missing label and still adds the new one when the old one is absent. Labels never close an issue: when a task reaches `status:done`, also call `github-ops close-issue <issue>` on that task's sub-issue (T7: when its check passes). Close only task sub-issues, never the feature issue (#22 here): it stays open until the user decides, after the final PR to `dev` is merged. Never close a `blocked` or `in-review` task.
 
 ## State
 

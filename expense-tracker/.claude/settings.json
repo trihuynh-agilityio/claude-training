@@ -109,7 +109,8 @@
       "Bash(*/.claude/scripts/publish-verification.sh *)",
       "Bash(.claude/scripts/publish-verification.sh *)",
       "Write(docs/features/*/verification.md)",
-      "Edit(docs/features/*/plan.md)"
+      "Edit(docs/features/*/plan.md)",
+      "Bash(gh issue close *)"
     ],
     "deny": [
       "Bash(git merge)",

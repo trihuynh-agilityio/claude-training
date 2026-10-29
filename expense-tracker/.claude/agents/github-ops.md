@@ -1,6 +1,6 @@
 ---
 name: github-ops
-description: Use for GitHub-side feature tracking: create-issue, find-issue, comment, swap-label, list-sub-issues, create-sub-issue, find-pr, create-pr, get-pr-state, get-pr-feedback, append-pr-section. Say which operation, plus the intent path, issue number, text or labels it needs.
+description: Use for GitHub-side feature tracking: create-issue, find-issue, comment, swap-label, list-sub-issues, create-sub-issue, find-pr, create-pr, get-pr-state, get-pr-feedback, append-pr-section, close-issue. Say which operation, plus the intent path, issue number, text or labels it needs.
 model: haiku
 tools: Bash, Read
 ---
@@ -40,8 +40,10 @@ Repo: `trihuynh-agilityio/claude-training`. Pass `--repo trihuynh-agilityio/clau
 
 11. **append-pr-section** (input: PR number, section file path, optional heading, default `## Verification`). Read the section file; its first line must be the heading. Get the current body with `gh pr view <n> --repo trihuynh-agilityio/claude-training --json body -q .body`. If the body already has that heading, drop everything from it up to the next line that starts with `## ` (or the end), so a re-run replaces the old section. Append the section after one blank line, keeping the rest of the body byte for byte. Write the result to a temp file and run `gh pr edit <n> --repo trihuynh-agilityio/claude-training --body-file <temp file>`. Return the PR number and URL and whether the section was `added` or `replaced`. Never change the title, base, labels or any other field.
 
+12. **close-issue** (input: issue number). Only for a task sub-issue. First `gh issue view <n> --repo trihuynh-agilityio/claude-training --json state,labels`. Refuse, and close nothing, if the issue has the label `feature` (the feature issue is never closed here) or lacks the label `task`. If it is already closed, say so and change nothing. Otherwise run `gh issue close <n> --repo trihuynh-agilityio/claude-training --reason completed`. Return the number and `closed` or `already closed`.
+
 ## Rules
 
-- Do only the requested operation: no extra comments, labels or closes.
+- Do only the requested operation: no extra comments, labels or closes (close-issue is the only close, and only on request).
 - Result, short: operation, issue number, URL, and what changed.
 - On any `gh` error, stop and return the error message. Do not retry with guesses.
