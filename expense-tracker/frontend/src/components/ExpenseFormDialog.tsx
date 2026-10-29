@@ -8,6 +8,7 @@ import {
   type ExpenseDraft,
   type ExpenseField,
 } from '../lib/validation'
+import type { DuplicateDraft } from '../lib/duplicate'
 import type { Expense, ExpenseInput } from '../types'
 import { CategoryPicker } from './CategoryPicker'
 import { AlertIcon, CloseIcon, TrashIcon } from './icons'
@@ -19,6 +20,8 @@ const FIELD_ORDER: ExpenseField[] = ['amount', 'category', 'date', 'note']
 type Props = {
   /** The expense being edited; omit to add a new one. */
   expense?: Expense
+  /** Seeds Amount, Category and Note in add mode (a duplicate); ignored when `expense` is set. */
+  prefill?: DuplicateDraft
   onSave: (input: ExpenseInput) => Promise<void>
   onClose: () => void
   onRequestDelete?: (expense: Expense) => void
@@ -34,13 +37,13 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   )
 }
 
-export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }: Props) {
+export function ExpenseFormDialog({ expense, prefill, onSave, onClose, onRequestDelete }: Props) {
   const today = todayISO()
   const [draft, setDraft] = useState<ExpenseDraft>({
-    amount: expense ? String(expense.amount) : '',
-    category: expense?.category_id ?? '',
+    amount: expense ? String(expense.amount) : prefill ? String(prefill.amount) : '',
+    category: expense?.category_id ?? prefill?.category_id ?? '',
     date: expense?.date ?? today,
-    note: expense?.note ?? '',
+    note: expense ? (expense.note ?? '') : (prefill?.note ?? ''),
   })
   const [submitCount, setSubmitCount] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -141,7 +144,12 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
             <FieldError id="amount-error" message={errors.amount} />
             <div className="pills" role="group" aria-label="Quick amounts">
               {QUICK_AMOUNTS.map((value) => (
-                <button className="pill" type="button" key={value} onClick={() => set('amount', String(value))}>
+                <button
+                  className="pill"
+                  type="button"
+                  key={value}
+                  onClick={() => set('amount', String(value))}
+                >
                   {groupDigits(String(value))}
                 </button>
               ))}
@@ -183,7 +191,11 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
               <button className="pill" type="button" onClick={() => set('date', today)}>
                 Today
               </button>
-              <button className="pill" type="button" onClick={() => set('date', addDays(today, -1))}>
+              <button
+                className="pill"
+                type="button"
+                onClick={() => set('date', addDays(today, -1))}
+              >
                 Yesterday
               </button>
             </div>
@@ -217,7 +229,11 @@ export function ExpenseFormDialog({ expense, onSave, onClose, onRequestDelete }:
 
         <div className="dialog-footer">
           {isEdit && onRequestDelete && (
-            <button className="btn btn-ghost-danger" type="button" onClick={() => onRequestDelete(expense)}>
+            <button
+              className="btn btn-ghost-danger"
+              type="button"
+              onClick={() => onRequestDelete(expense)}
+            >
               <TrashIcon />
               Delete
             </button>
