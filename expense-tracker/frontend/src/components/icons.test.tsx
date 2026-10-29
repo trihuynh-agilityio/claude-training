@@ -10,11 +10,14 @@ describe('CopyIcon', () => {
     const svg = container.querySelector('svg')
     expect(svg).not.toBeNull()
     expect(svg?.getAttribute('width')).toBe('18')
+    expect(svg?.getAttribute('height')).toBe('18')
     expect(svg?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('uses a given size', () => {
     const { container } = render(<CopyIcon size={24} />)
-    expect(container.querySelector('svg')?.getAttribute('width')).toBe('24')
+    const svg = container.querySelector('svg')
+    expect(svg?.getAttribute('width')).toBe('24')
+    expect(svg?.getAttribute('height')).toBe('24')
   })
 })
