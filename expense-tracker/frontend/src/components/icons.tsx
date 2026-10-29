@@ -137,3 +137,10 @@ export const PlayIcon = ({ size = 18 }: IconProps) => (
     <path d="M7 4l13 8-13 8z" />
   </Svg>
 )
+
+export const CopyIcon = ({ size = 18 }: IconProps) => (
+  <Svg size={size}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <rect x="4" y="4" width="11" height="11" rx="2" />
+  </Svg>
+)
