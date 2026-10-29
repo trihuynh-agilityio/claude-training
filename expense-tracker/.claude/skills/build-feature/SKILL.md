@@ -7,13 +7,13 @@ allowed-tools: Read Write Edit Glob Grep Agent CronCreate CronList CronDelete Ba
 
 # Build a feature
 
-Runs the whole of Phase 3 for one feature. It is idempotent: every run computes its position from `plan.md` and GitHub, never from memory, then advances as far as it can. It never merges a PR; the user does.
+Runs the whole of Phase 3 for one feature. It is idempotent: every run computes its position from `plan.md` (plus `plan-fix.md`, if verify added fix waves) and GitHub, never from memory, then advances as far as it can. It never merges a PR; the user does.
 
 Argument: `<feature-name>`, the folder under `docs/features/`.
 
 ## Paths
 
-- Project root: the folder that contains `docs/features/` (the `expense-tracker/` folder). Plan: `<project root>/docs/features/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/state.json`.
+- Project root: the folder that contains `docs/features/` (the `expense-tracker/` folder). Plan: `<project root>/docs/features/<feature-name>/plan.md`. Fix tasks: `plan-fix.md` next to it, written by `verify-feature` after a FAIL (its tasks already have issues). A task's **plan path** is always the absolute path of the `plan=` file `build-position.sh` prints for it, so a fix task gets `plan-fix.md` everywhere (lane, implementer, reviewer, UI verifier, gates). Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/state.json`.
 - Integration branch: the `PR target:` of the tasks (`feat/<feature-issue>-<slug>`). Repo root worktrees: `<repo root>/.claude/worktrees/`.
 
 ## 1. Preconditions
@@ -84,7 +84,7 @@ Run by the watch when `get-pr-feedback` returns new feedback on an OPEN task PR.
 Reached when `ACTION=finish`, or when the only unfinished task is the integration task (T7). Label T7 `status:in-progress` first; it goes to `status:done` (and its issue is closed) when its check passes, or to `status:blocked`.
 
 1. In a worktree of the integration branch (`git worktree add <repo root>/.claude/worktrees/<name with - for /> <name>`, then `npm ci --prefer-offline` in `frontend/`), run the plan's commands once: `npm test`, `npm run lint`, `npm run build`. If anything fails, set status `blocked`, report the output and stop. On success, add `CHECK T7 PASS` to the states file.
-2. Check `git diff --stat dev...<integration branch>` touches only files from the plan plus this feature's docs.
+2. Check `git diff --stat dev...<integration branch>` touches only files from the plan and `plan-fix.md` plus this feature's docs.
 3. `github-ops find-pr <integration branch>`; if a PR exists, reuse it. Otherwise write the body to `<project root>/.claude/workflow/pr-final.md`: the `pr-description` output for `dev...<integration branch>` (base `dev`, skip its step 4 and title), then a table of the task PRs (task, title, PR link), the acceptance table from plan.md (requirement, task, test), the suite result, and as the last line `Created by workflow; review and merge by a human.`. Then `github-ops create-pr` with head = the integration branch, base = `dev`, title = `Feature: <H1 of intent.md without "Intent: ">`.
 4. `github-ops comment` on the feature issue (found with `find-issue`) listing the task PRs and the final PR, then `swap-label` `phase:tasks-ready` to `phase:build-done`.
 5. State: phase `build`, status `done`, `handed_off` **false** (this is what lets the `Stop` hook start `verify-feature`; only this step ever writes false, and only here are all task PRs merged and the final PR open), `loop_id` null. Remove the worktree of the integration branch. Do not commit, do not start another phase.
@@ -115,6 +115,6 @@ Set one with `github-ops swap-label <issue> <previous status label> <new label>`
 ## Rules
 
 - Never merge a PR, never push `dev` or `main`, never force push, never use `gh pr merge` or `gh pr review`. The deny rules and the `feat/*` push hook stay.
-- Never edit `intent.md` or `spec.md`; `plan.md` is not edited here at all.
+- Never edit `intent.md` or `spec.md`; `plan.md` and `plan-fix.md` are not edited here at all.
 - Opus only for this skill; the lanes and implementer are Sonnet; GitHub and status checks are Haiku (`github-ops`).
 - Report concisely at each stop: wave number, per-task status, PR links, and what the user does next.

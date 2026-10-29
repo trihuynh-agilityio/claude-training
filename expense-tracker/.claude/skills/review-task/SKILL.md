@@ -14,7 +14,7 @@ Arguments: `<feature-name> <task-id>`, for example `over-budget-alerts T4`.
 
 ## Paths
 
-- Project root: the folder that contains `docs/features/` (the `expense-tracker/` folder). Plan: `<project root>/docs/features/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`.
+- Project root: the folder that contains `docs/features/` (the `expense-tracker/` folder). Plan: `<project root>/docs/features/<feature-name>/plan.md`, or `plan-fix.md` next to it when the task id is defined there (a fix task added by `verify-feature`); that file is the plan path below. Scripts: `<project root>/.claude/scripts/`.
 - Read the task's block in the plan. Its `Branch:` gives the worktree: `<repo root>/.claude/worktrees/<branch with / replaced by ->`. Its `PR target:` is the integration branch.
 - In the worktree, work from its `expense-tracker/` folder. The report is `docs/features/<feature-name>/reviews/<task-id>.md` there.
 
@@ -75,5 +75,5 @@ Never create the PR here.
 ## Rules
 
 - The reviewer and this skill never edit source code; only the implementer does, in fix mode.
-- Never edit `intent.md`, `spec.md` or `plan.md`. A finding about them goes to the user.
+- Never edit `intent.md`, `spec.md` `plan.md` or `plan-fix.md`. A finding about them goes to the user.
 - Never push, merge or post to GitHub.

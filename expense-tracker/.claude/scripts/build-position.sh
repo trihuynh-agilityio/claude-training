@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Computes where the build of a feature stands, from the plan and the pull request states. No writes.
 #   build-position.sh <plan-path> <states-file>
+# Also reads plan-fix.md next to the plan when it exists (the fix waves verify-feature adds after a FAIL);
+# each task line ends with plan=<file> so callers pass the right plan path for that task.
 # states-file, one line each, tab or space separated (from github-ops get-pr-state):
 #   <branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]
 #   CHECK <task-id> PASS     the integration check of a task that has no PR of its own (T7)
@@ -9,6 +11,9 @@
 
 plan="${1:-}"; states="${2:-}"
 [[ -f "$plan" && -f "$states" ]] || { echo "usage: build-position.sh <plan-path> <states-file>" >&2; exit 2; }
+plan_files=("$plan")
+fix="$(dirname "$plan")/plan-fix.md"
+[[ -f "$fix" ]] && plan_files+=("$fix")
 
 tasks="$(awk '
   /^## Wave [0-9]+/ { if (id) emit(); wave = $3; next }
@@ -16,10 +21,11 @@ tasks="$(awk '
   id && /^- \*\*Lane\*\*:/   { lane = $0; sub(/^- \*\*Lane\*\*: */, "", lane) }
   id && /^- \*\*Issue\*\*:/  { issue = $0; sub(/^- \*\*Issue\*\*: */, "", issue) }
   id && /^- \*\*Branch\*\*:/ { branch = $0; if (branch ~ /only if/) optional = 1; sub(/^[^`]*`/, "", branch); sub(/`.*/, "", branch) }
-  /^## (Risks|Checks)/ { if (id) emit(); id = "" }
-  function emit() { printf "%s\t%s\t%s\t%s\t%s\t%d\n", id, wave, lane, issue, branch, optional; id = "" }
+  /^## /            { if (id) emit(); id = "" }   # any other heading ends a task
+  function emit() { printf "%s\t%s\t%s\t%s\t%s\t%d\t%s\n", id, wave, lane, issue, branch, optional, FILENAME; id = "" }
+  FNR == 1 && NR > 1 { if (id) emit(); id = "" }
   END { if (id) emit() }
-' "$plan")"
+' "${plan_files[@]}")"
 [[ -n "$tasks" ]] || { echo "build-position: no tasks found in $plan" >&2; exit 2; }
 
 state_of() { awk -v b="$1" '$1 == b { print $2; exit }' "$states"; }
@@ -27,7 +33,7 @@ pr_of()    { awk -v b="$1" '$1 == b { print $3; exit }' "$states"; }
 checked()  { awk -v t="$1" '$1 == "CHECK" && $2 == t && $3 == "PASS" { f = 1 } END { exit !f }' "$states"; }
 
 order=(); st_list=(); wv_list=()
-while IFS=$'\t' read -r id wave lane issue branch optional; do
+while IFS=$'\t' read -r id wave lane issue branch optional src; do
   st="$(state_of "$branch")"; pr="$(pr_of "$branch")"
   s=todo
   case "$st" in
@@ -41,7 +47,7 @@ while IFS=$'\t' read -r id wave lane issue branch optional; do
   esac
   [[ "$issue" =~ ^#[0-9]+$ ]] || s=blocked_no_issue
   order+=("$id"); st_list+=("$s"); wv_list+=("$wave")
-  printf '%s wave=%s lane=%s issue=%s branch=%s pr=%s status=%s\n' "$id" "$wave" "$lane" "$issue" "${branch:-none}" "${pr:--}" "$s"
+  printf '%s wave=%s lane=%s issue=%s branch=%s pr=%s status=%s plan=%s\n' "$id" "$wave" "$lane" "$issue" "${branch:-none}" "${pr:--}" "$s" "$src"
 done <<<"$tasks"
 
 current=""

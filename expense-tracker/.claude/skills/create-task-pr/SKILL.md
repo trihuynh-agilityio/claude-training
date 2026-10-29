@@ -14,7 +14,7 @@ Arguments: `<feature-name> <task-id>`, for example `over-budget-alerts T4`.
 
 ## Paths
 
-- Project root: the folder that contains `docs/features/`. Plan: `<project root>/docs/features/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`.
+- Project root: the folder that contains `docs/features/`. Plan: `<project root>/docs/features/<feature-name>/plan.md`, or `plan-fix.md` next to it when the task id is defined there (a fix task added by `verify-feature`); that file is the plan path below. Scripts: `<project root>/.claude/scripts/`.
 - Read the task's block in the plan: `Branch:` (the head), `PR target:` (the base, the integration branch), `PR title:`, `Issue:`, `Covers:`, and whether it has a `UI check:`.
 - The worktree is `<repo root>/.claude/worktrees/<branch with / replaced by ->`. Work from its `expense-tracker/` folder.
 

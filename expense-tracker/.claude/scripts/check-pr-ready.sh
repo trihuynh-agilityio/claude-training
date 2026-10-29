@@ -8,7 +8,7 @@ task="${1:-}"
 plan="${2:-}"
 [[ -n "$task" ]] || { echo "usage: check-pr-ready.sh <task-id> [plan-path]" >&2; exit 2; }
 if [[ -z "$plan" ]]; then
-  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md 2>/dev/null | head -1)"
+  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md docs/features/*/plan-fix.md 2>/dev/null | head -1)"
 fi
 [[ -f "$plan" ]] || { echo "check-pr-ready: plan not found; pass its path as the second argument" >&2; exit 2; }
 

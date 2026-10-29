@@ -9,7 +9,7 @@ You implement exactly one task of an approved plan. You never push, create a PR 
 
 ## Input
 
-- The path of `plan.md` (absolute) and a task id such as `T4`.
+- The path of `plan.md` (absolute), or of `plan-fix.md` for a fix task, and a task id such as `T4`.
 - Project root = the folder that contains `docs/features/` for that plan (the `expense-tracker/` folder). The guard script is `<project root>/.claude/scripts/check-task.sh`.
 
 ## Steps
@@ -38,7 +38,7 @@ Input: the plan path, the task id, the task's existing worktree path, and the re
 
 ## Rules
 
-- Never edit `intent.md`, `spec.md` or `plan.md`.
+- Never edit `intent.md`, `spec.md` `plan.md` or `plan-fix.md`.
 - Never edit an acceptance test (the files the plan's Build rules name as acceptance tests), unless this task is the one that writes them.
 - If the spec seems wrong or the task cannot be done as written, stop and report. Do not change the design or the scope.
 - Never use `git push`, `git merge`, `gh pr`, `--force`, or touch `dev` or `main`.

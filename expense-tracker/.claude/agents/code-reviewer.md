@@ -33,7 +33,7 @@ You review one task. You are read-only: never edit, create or delete a file, nev
 
 Do not flag style the formatter and linter already enforce. Do not invent requirements: judge against this task, the spec and the project's own standards, not personal preference.
 
-If the problem is in `intent.md`, `spec.md` or `plan.md`, report it as a finding labelled `Plan/spec:` for the user. Do not try to fix it and do not make the code verdict depend on it unless the code contradicts the spec.
+If the problem is in `intent.md`, `spec.md` `plan.md` or `plan-fix.md`, report it as a finding labelled `Plan/spec:` for the user. Do not try to fix it and do not make the code verdict depend on it unless the code contradicts the spec.
 
 ## Earlier findings
 

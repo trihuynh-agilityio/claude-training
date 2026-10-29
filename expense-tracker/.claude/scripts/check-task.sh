@@ -4,14 +4,14 @@
 # Run from the task's worktree, inside its expense-tracker/ folder. Compares the work
 # (committed, uncommitted and untracked) with the task's PR target branch and exits 1,
 # printing every rule that fails. The plan is not inside the worktree while it is
-# untracked, so pass its path; without it the script looks in docs/features/*/plan.md.
+# untracked, so pass its path; without it the script looks in docs/features/*/plan.md and plan-fix.md.
 
 task="${1:-}"
 plan="${2:-}"
 [[ -n "$task" ]] || { echo "usage: check-task.sh <task-id> [plan-path]" >&2; exit 2; }
 
 if [[ -z "$plan" ]]; then
-  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md 2>/dev/null | head -1)"
+  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md docs/features/*/plan-fix.md 2>/dev/null | head -1)"
 fi
 [[ -f "$plan" ]] || { echo "check-task: plan not found; pass its path as the second argument" >&2; exit 2; }
 
@@ -92,7 +92,7 @@ while IFS= read -r f; do
     bad "$f is an acceptance test; only the task that writes it may change it"
   fi
   case "$f" in
-    */intent.md | */spec.md | */plan.md | intent.md | spec.md | plan.md)
+    */intent.md | */spec.md | */plan.md | */plan-fix.md | intent.md | spec.md | plan.md | plan-fix.md)
       bad "$f is an intent, spec or plan file; no task may change it" ;;
   esac
 done <<<"$changed"
