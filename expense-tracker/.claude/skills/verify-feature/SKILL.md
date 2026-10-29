@@ -1,37 +1,22 @@
 ---
 name: verify-feature
-description: Phase 4 (Verify), started by the Stop hook when build-feature finishes (or run by hand) after every task PR of a feature is merged into the integration branch and the final PR to dev exists. Verifies the WHOLE feature on a throwaway worktree (merged with dev locally): mechanical checks, feature E2E, an AC table, a whole-feature review, then writes verification.md (local only, posted to the feature issue) and a PASS or FAIL verdict. On FAIL it proposes fix tasks. Run with the feature folder name; add --dry-run to print what each step would do without writing anything, or --simulate <case> to test a FAIL path. Re-run any time.
+description: Phase 4 (Verify), started by the Stop hook when build-feature finishes (or run by hand) after every task PR of a feature is merged into the integration branch and the final PR to dev exists. Verifies the WHOLE feature on a throwaway worktree (merged with dev locally): mechanical checks, feature E2E, an AC table, a whole-feature review, then writes verification.md (local only, posted to the feature issue) and a PASS or FAIL verdict. On FAIL it reports the failure, writes plan-fix.md from the failed items and, after your approval, creates the fix issues and starts the fix build. Run with the feature folder name; add --dry-run to print what each step would do without writing anything. Re-run any time.
 model: opus
-allowed-tools: Read Write Edit Glob Grep Agent AskUserQuestion Bash(git status*) Bash(git log*) Bash(git diff*) Bash(git show *) Bash(git rev-parse *) Bash(git branch*) Bash(git merge-base *) Bash(git ls-remote *) Bash(git fetch github*) Bash(git worktree *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/verify-worktree.sh *) Bash(*/.claude/scripts/verify-checks.sh *) Bash(*/.claude/scripts/verify-simulate.sh *)
+allowed-tools: Read Write Edit Glob Grep Agent AskUserQuestion Bash(git status*) Bash(git log*) Bash(git diff*) Bash(git show *) Bash(git rev-parse *) Bash(git branch*) Bash(git merge-base *) Bash(git ls-remote *) Bash(git fetch github*) Bash(git worktree *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/verify-worktree.sh *) Bash(*/.claude/scripts/verify-checks.sh *)
 ---
 
 # Verify a feature
 
 Phase 4. Per-task checks ran on isolated task branches; this verifies the whole feature as it would land in `dev`. It is idempotent. It never edits code on the integration branch, never merges or approves anything, never pushes anything, and never commits `verification.md`: the report stays local and its full text goes to the feature issue as a comment.
 
-Arguments: `<feature-name> [--dry-run | --simulate <case>]`. With `--dry-run`, run only the read-only parts (step 1 reads, no state write, no worktree) and for every other step print one line "would do: …" naming the commands, files and GitHub calls. Write nothing, create nothing, call no `swap-label`, `comment` or `append-pr-section`.
-
-## Simulate mode (testing the unhappy paths)
-
-`--simulate <case>` plants one known failure and runs the real skill up to the verdict, so each FAIL path can be tested on a feature that already passes. It never writes to GitHub, the state file, `plan.md` or the real evidence: GitHub calls that would write (`comment`, `append-pr-section`, `swap-label`, `create-sub-issue`) and the plan edit are printed as "would do: …" lines, read-only calls still run, the state goes to `<scratchpad>/verify-sim-state.json`, and evidence to `<project root>/docs/features/<feature-name>/evidence/verify-sim-<case>/`. The worktree, the planted failure and the `verify-sim/*` branch are removed at the end by `verify-worktree.sh remove`. Everything else follows the normal steps.
-
-| Case | Plants | Expected outcome |
-|---|---|---|
-| `preconditions` | After step 1.2, the last task with a PR is rewritten to `OPEN <its pr>` in the states file (a scratchpad copy). | Step 1.3 stops, names that task and its PR, writes no state and creates no worktree. |
-| `conflict` | `verify-simulate.sh dev-ref <feature>`, then `VERIFY_DEV_REF=<printed ref> verify-worktree.sh create …`. | `verify-worktree.sh` exits 3; the skill stops, says so and resolves nothing. |
-| `check` | `verify-simulate.sh break check <WORKTREE>/expense-tracker` after step 2. | `unit-frontend` fails in `checks.tsv`; verdict FAIL; fix tasks proposed. |
-| `ac` | `verify-simulate.sh break ac <WORKTREE>/expense-tracker` after step 2. | Every check passes, R5 is UNVERIFIED (no test block proves it); verdict FAIL. |
-| `review` | `verify-simulate.sh break review <WORKTREE>/expense-tracker` after step 2 (a local commit). Step 6 reads `DEV_HEAD...HEAD` of the worktree instead of `INTEGRATION_HEAD`. | A major finding for the backend edit (scope creep in a frontend-only feature) and one for the `console.log`; verdict FAIL. |
-| `e2e` | Step 4 runs the `e2e-verifier` with the servers not started and the instruction to not start them. | E2E is BLOCKED, which is never a pass; verdict FAIL. |
-| `escalate` | As `check`, with `fix_round` taken as 2. | Verdict FAIL, then "Failure handling" step 1: escalates and proposes no fix tasks. |
-
-In every case except `e2e`, step 4 is skipped and reported as "not run (simulate)", not as a failure. On a FAIL, the fix tasks are still drafted and shown with `AskUserQuestion`, so that flow can be checked; whatever the answer, only "would do" lines follow. The report ends with `Simulated: <case>` and whether the outcome matched the table.
+Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-only parts (step 1 reads, no state write, no worktree) and for every other step print one line "would do: …" naming the commands, files and GitHub calls. Write nothing, create nothing, call no `swap-label`, `comment` or `append-pr-section`.
 
 ## Paths
 
 - Project root: the folder that contains `docs/features/` (`expense-tracker/`). Plan: `<project root>/docs/features/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/state.json`.
 - Integration branch: the `PR target:` of the plan's tasks (`feat/<issue>-<slug>`). Feature issue: `github-ops find-issue` on `intent.md`.
 - Evidence (git-ignored, in the MAIN checkout so it survives the worktree): `<project root>/docs/features/<feature-name>/evidence/verify/`. The report is written there as `verification.md` and is never committed; step 8 posts it to the feature issue.
+- Fix tasks: `<project root>/docs/features/<feature-name>/plan-fix.md` (see Failure handling); `plan.md` is never edited here.
 - Requirements: the plan's `### AC coverage` and `### Test plan` tables. The intent has no numbered ACs; the requirement ids (R1…) are in `spec.md`, and each one is an AC here. Task heading and `Covers:` come from the plan.
 - Commands: from the plan's Build rules and `CLAUDE.md`. If a command is missing from both, stop and ask.
 
@@ -41,7 +26,7 @@ In every case except `e2e`, step 4 is skipped and reported as "not run (simulate
 2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. A task whose branch is marked "only if fixes are needed" and has no PR (T7) is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
 3. Run `build-position.sh <plan> <states file>`. Every task must be `done`. Otherwise stop, list each task that is not (OPEN with its PR number, CLOSED, NONE) and tell the user to merge or finish them. Write no state.
 4. `github-ops find-pr <integration branch>`: the final PR must exist, be OPEN and have base `dev`. Otherwise stop and say so (run `build-feature` to open it).
-5. Count the `(Fix wave` headings in plan.md (`fix_round`). If a FAIL would need a third one, step 8 escalates instead.
+5. Count the `## Fix round ` headings in `plan-fix.md` (`fix_round`; 0 when the file does not exist). If a FAIL would need a third one, step 8 escalates instead.
 6. Write the state (not in `--dry-run`): `{"feature": "<name>", "phase": "verify", "status": "in_progress", "handed_off": true, "fix_round": <n>}`. `handed_off` stays `true` so `next-phase.sh` never starts anything from it.
 
 ## 2. Throwaway worktree
@@ -93,33 +78,50 @@ Call `github-ops` (Haiku), not in `--dry-run`:
 
 Finally `verify-worktree.sh remove <feature-name>`. Report in a few lines: verdict, failed checks, UNVERIFIED ACs, blocker and major findings, the PR link, what the user does next.
 
-## Failure handling (no direct fixes)
+## Failure handling: report, plan-fix, approval, fix build
 
-Verify never edits code on the integration branch.
+Verify never edits code on the integration branch. On FAIL the report is already posted (step 8), so the order is: report the failure, write `plan-fix.md` from exactly what failed, ask for approval, and only then create the issues and start the fix build, which works like `build-feature`.
 
-1. If `fix_round` is already 2, stop: tell the user verification failed after 2 fix rounds and escalate; propose no more tasks.
-2. Propose fix tasks, small (under 300 lines and 10 files each) with `Files`, `Covers`, `Verify`, `Done when` as in `write-plan`, one per root cause. Number them `F1`, `F2`… for the issue titles. Show them with `AskUserQuestion`: approve, change, or "I'll handle it myself". On "I'll handle it myself", stop.
-3. Only after approval: for each task call `github-ops create-sub-issue` (parent: the feature issue, title `F<n>: <title>`, label `task`, a short body with goal, covered requirements and the plan path). Then append ONE section to `plan.md` (the only plan edit allowed here; never touch intent.md or spec.md):
+1. **Round limit.** If `fix_round` is already 2, stop: tell the user verification failed after 2 fix rounds and escalate; write no `plan-fix.md` round.
+2. **Write the draft.** From the failed checks, UNVERIFIED ACs and blocker or major findings, write ONE draft round to `<project root>/docs/features/<feature-name>/plan-fix.md`: one small task per root cause (under 300 lines and 10 files, `Files`, `Covers`, `Verify`, `Done when` as in `write-plan`), `Issue: pending`. Never edit `plan.md`, `intent.md` or `spec.md`. Create the file with these three lines if it does not exist:
 
    ```
+   # Plan fix: <feature name>
+   From: [plan.md](plan.md). Written by verify-feature, one section per fix round; never edited by hand.
+   Status: approved.
+   ```
+
+   Append the round (earlier rounds stay as they are). The `(draft)` mark means "not approved yet":
+
+   ```
+   ## Fix round <fix_round + 1> (draft)
+   - Verified: `<integration branch>` at `<INTEGRATION_HEAD>`, <date>. Report: <issue comment URL>.
+   - Issues:
+     1. <what failed: check, UNVERIFIED AC with its reason, or finding with severity and file:line>. Fixed by T<id>.
+
    ## Wave <last wave + 1> (Fix wave <fix_round + 1>)
 
    ## T<last task number + k>: <title>  [ ]
    - **Lane**: A
    - **Goal** / **Files** / **Size** / **Covers** / **Depends on** / **Tests** / **Verify** / **Done when**: as in write-plan
    - **Slug**: `<slug>`
-   - **Issue**: #<n>
-   - **Branch**: `feat/<n>-<slug>`
+   - **Issue**: pending
+   - **Branch**: `pending`
    - **PR target**: `<integration branch>`
-   - **PR title**: `T<id>: <title> (#<n>)`
+   - **PR title**: `T<id>: <title> (#<sub-issue>)`
    ```
 
-   The headings use `## Wave <n>` and `## T<n>:` because `build-position.sh` only reads those; the issue title keeps `F<n>:`. Put the F label in the **Goal** line (`Fix F<n>: …`). A fix wave runs after the earlier waves, so it never collides with a task already merged.
-4. Tell the user to run `/build-feature <feature-name>` (it runs the fix wave through implement, review, UI check, PR and their merge), then `/verify-feature <feature-name>` again.
+   "Last wave" and "last task number" count both `plan.md` and the earlier rounds of `plan-fix.md`. Headings use `## Wave <n>` and `## T<n>:` because `build-position.sh` only reads those. Put the F label in the **Goal** line (`Fix F<n>: …`).
+3. **Ask.** Tell the user the path and show a table (task, what it fixes, files, size). `AskUserQuestion`: approve, change (the user edits or says what; then update the draft and ask again), or "I'll handle it myself". On "I'll handle it myself", delete the draft round you wrote and stop. Nothing is created before the approval.
+4. **After approval.** Remove ` (draft)` from the round heading. Then do what `create-task-issues` does for these tasks:
+   1. `github-ops create-sub-issue` per task (parent: the feature issue, title `F<n>: <title>`, label `task`, a short body with goal, covered requirements, wave and the path of `plan-fix.md`). A task whose issue already exists is kept.
+   2. Write the numbers back into `plan-fix.md`: `Issue: #<n>`, `Branch:` with the name in backticks as in `plan.md` (`` `feat/<n>-<slug>` ``; `build-position.sh` only reads a backticked branch), and `<sub-issue>` in `PR title` replaced by `<n>`. This is the only edit after approval.
+   3. `github-ops comment` on the feature issue: the fix tasks (number, title, what they fix) and the round.
+5. **Start the fix build.** Write the state `{"feature": "<feature-name>", "phase": "tasks", "status": "done", "handed_off": false}`. The `Stop` hook then starts `build-feature`, which runs the fix wave exactly like any wave: one task per lane (implementer, `Verify`, `check-task.sh`), `review-task` with fixes, the UI check when the task has one, `create-task-pr`, then waits for you to merge the fix PRs. When the fix wave is merged and the final PR is up to date, `build-feature` finishes and the hook starts `verify-feature` again. Tell the user in two lines what was created and that the fix build is starting.
 
 ## State
 
-Same file and shape as the other phases: `{"feature", "phase": "verify", "status": "in_progress|done|failed|blocked", "handed_off": true, "fix_round": n}`. `handed_off` is always `true`, so a verify result never triggers another hook run (no loop). `next-phase.sh` starts this skill from `build / done / handed_off:false`, which `build-feature` step 5 writes only after every task PR is merged and the final PR exists; the preconditions of step 1 still re-check both. After a fix wave, `build-feature` finishing again re-triggers verify.
+Same file and shape as the other phases: `{"feature", "phase": "verify", "status": "in_progress|done|failed|blocked", "handed_off": true, "fix_round": n}`. `handed_off` is `true` in every verify state, so a verify result never triggers a hook run by itself. The one exception is on purpose: after you approve `plan-fix.md`, "Failure handling" step 5 writes `phase: tasks, status: done, handed_off: false` so the hook starts the fix build. `next-phase.sh` starts this skill from `build / done / handed_off:false`, which `build-feature` step 5 writes only after every task PR is merged and the final PR exists; the preconditions of step 1 still re-check both. After the fix wave is merged, `build-feature` finishing re-triggers verify (a new round, 2 at most).
 
 ## Rules
 
