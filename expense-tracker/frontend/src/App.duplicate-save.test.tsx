@@ -41,7 +41,7 @@ const BUS: Expense = {
   amount: 15_000,
   category_id: 'transport',
   date: OLD,
-  note: '',
+  note: null,
   created_at: `${OLD}T09:00:00`,
 }
 const RENT: Expense = {
@@ -142,6 +142,14 @@ describe('saving a duplicate', () => {
 
   it('R9: creates once with the form values and leaves the original alone', async () => {
     await openDuplicate('Duplicate Lunch with team')
+    const lunchCopy: Expense = {
+      ...LUNCH,
+      id: 99,
+      date: TODAY,
+      created_at: `${TODAY}T10:00:00`,
+      recurring_id: null,
+    }
+    vi.mocked(listExpenses).mockResolvedValue([LUNCH, BUS, RENT, lunchCopy])
     fireEvent.click(dialog().getByRole('button', { name: 'Add expense' }))
     await waitFor(() => expect(createExpense).toHaveBeenCalledTimes(1))
     expect(createExpense).toHaveBeenCalledWith({
@@ -152,7 +160,10 @@ describe('saving a duplicate', () => {
     })
     expect(updateExpense).not.toHaveBeenCalled()
     await screen.findByText('Expense added')
-    expect(screen.getByRole('button', { name: 'Edit Lunch with team' })).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: 'Edit Lunch with team' })).toHaveLength(2)
+    // The original keeps its amount and its own date group.
+    expect(screen.getAllByText('120.000').length).toBeGreaterThanOrEqual(2)
+    expect(updateExpense).not.toHaveBeenCalled()
   })
 
   it('R10: closes the dialog and shows the toast', async () => {
@@ -183,6 +194,14 @@ describe('saving a duplicate', () => {
 
   it('R12: a copy of a recurring expense has no recurring_id and no badge', async () => {
     await openDuplicate('Duplicate Rent')
+    const rentCopy: Expense = {
+      ...RENT,
+      id: 99,
+      date: TODAY,
+      created_at: `${TODAY}T10:00:00`,
+      recurring_id: null,
+    }
+    vi.mocked(listExpenses).mockResolvedValue([LUNCH, BUS, RENT, rentCopy])
     fireEvent.click(dialog().getByRole('button', { name: 'Add expense' }))
     await waitFor(() => expect(createExpense).toHaveBeenCalledTimes(1))
     expect(vi.mocked(createExpense).mock.calls[0][0]).not.toHaveProperty('recurring_id')
