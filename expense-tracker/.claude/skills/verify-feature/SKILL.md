@@ -18,7 +18,7 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 - Evidence (git-ignored, in the MAIN checkout so it survives the worktree): `<project root>/docs/features/<feature-name>/evidence/verify/`. The report is written there as `verification.md` and is never committed; step 8 posts it to the feature issue.
 - Fix tasks: `<project root>/docs/features/<feature-name>/plan-fix.md` (see Failure handling); `plan.md` is never edited here.
 - Requirements: the plan's `### AC coverage` and `### Test plan` tables. The intent has no numbered ACs; the requirement ids (R1…) are in `spec.md`, and each one is an AC here. Task heading and `Covers:` come from the plan.
-- Commands: from the plan's Build rules and `CLAUDE.md`. If a command is missing from both, stop and ask.
+- Commands: from `CLAUDE.md`. If a command is missing, stop and ask.
 
 ## 1. Preconditions
 

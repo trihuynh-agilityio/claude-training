@@ -39,7 +39,7 @@ Input: the plan path, the task id, the task's existing worktree path, and the re
 ## Rules
 
 - Never edit `intent.md`, `spec.md` `plan.md` or `plan-fix.md`.
-- Never edit an acceptance test (the files the plan's Build rules name as acceptance tests), unless this task is the one that writes them.
+- Never edit an acceptance test (the files in the Acceptance test file column of the plan's Test plan), unless this task is the one that writes them.
 - If the spec seems wrong or the task cannot be done as written, stop and report. Do not change the design or the scope.
 - Never use `git push`, `git merge`, `gh pr`, `--force`, or touch `dev` or `main`.
 - Do only this task. Do not start another task, do not run a UI check, do not open a browser.

@@ -12,7 +12,7 @@ A plan turns an approved spec into small tasks grouped in waves that the build p
 ## 1. Collect the inputs
 
 - **Intent and spec**: the `intent.md` and `spec.md` the plan answers. Take them from the request (a feature folder name such as `over-budget-alerts` means `docs/features/<feature-name>/`). If the request names none, run `ls docs/features/` and ask which folder. If the folder has no `spec.md`, stop and offer to run `write-spec` first.
-- **Project guidance**: read `CLAUDE.md` and any design spec it points to, for the stack, rules and commands. The plan needs three things from it: the **test command** (and how to run one file or test), the **dev server command and URL**, and the **GitHub repo** (`owner/repo`). If any of the three is missing, stop and ask the user. Do not guess. If any task will have a UI check, the plan also needs the fixed dev-server ports of lane A and lane B (frontend and backend each) and how to set them; if `CLAUDE.md` does not say, stop and ask the user.
+- **Project guidance**: read `CLAUDE.md` and any design spec it points to, for the stack, rules and commands. The tasks need two things from it: the **test command** (and how to run one file or test) and the **dev server command and URL**. If either is missing, stop and ask the user. Do not guess. The plan never copies the workflow rules or the repo name: those live in `CLAUDE.md`, the skills and `github-ops`. If any task will have a UI check, the plan also needs the fixed dev-server ports of lane A and lane B (frontend and backend each) and how to set them; if `CLAUDE.md` does not say, stop and ask the user.
 - **Feature issue number**: call the `github-ops` agent with `find-issue docs/features/<feature-name>/intent.md` and take the number from its report. The number names the integration branch only; it is never written into the intent or the spec. If it reports `not found`, stop and tell the user to finish Phase 1 (`/plan-feature`).
 - **The code**: use Glob and Grep to find the real files, routes, components and helpers the spec touches. Name only files you found, or new files marked as new. Never guess a path.
 
@@ -35,8 +35,6 @@ The layout is fixed. Lines 1 to 3 are exactly these, then the headings below in 
 # Plan: <feature name>
 Status: draft.
 From: [intent.md](intent.md) and [spec.md](spec.md).
-
-## Build rules
 
 ## Issues with the spec
 
@@ -104,28 +102,17 @@ Every task has, in this order:
 
 ### UI check (UI tasks only)
 
-- **Route/URL**: the frontend URL of the task's lane (from the lane ports in the Build rules) plus the path.
+- **Route/URL**: the frontend URL of the task's lane (from the lane ports in `CLAUDE.md`) plus the path.
 - **Scenarios**: each is the user's actions and the expected visible result.
 - Every scenario must be reproducible as written: name the exact setup and data. For a failure, slow or offline state, say how to cause it in the browser (for example a console override of `fetch` that never answers for one URL), never a step like "stop the server and bring it back".
 - **Evidence**: a screenshot per scenario, a trace or video for multi-step flows, and the browser console log with failed requests.
-- UI checks run with Playwright MCP inside the task's own lane, right after the implementer and before the task's PR is created. Each lane has its own browser and its own fixed dev-server ports; record both lanes' ports in the plan's Build rules, read from `CLAUDE.md`.
+- UI checks run with Playwright MCP inside the task's own lane, right after the implementer and before the task's PR is created. Each lane has its own browser and its own fixed dev-server ports, set in `CLAUDE.md`.
 - Evidence goes in `docs/features/<feature-name>/evidence/<task-id>/` with a `result.md` (each scenario pass or fail, observed against expected, errors, branch and commit). Nothing in the evidence folder is committed. The content of `result.md` and the screenshots (published by `publish-evidence.sh`) go into the PR description.
 
 If the task has no UI change, leave the UI check out.
 
 ## 5. Fill the other sections
 
-- **Build rules**: copy these rules in, with the real names filled in, so the build phase can follow them:
-  - Branches are named `feat/<number>-<slug>` (lowercase kebab-case, ASCII, 2 to 5 words). Slugs are unique within the feature.
-  - The integration branch `feat/<feature-issue-number>-<feature-slug>` is created from `dev`, never from `main`.
-  - A task branch `feat/<sub-issue-number>-<task-slug>` is created from the integration branch after the previous wave's PRs are merged into it. Each task PR targets the integration branch and is titled `T<n>: <task title> (#<sub-issue-number>)`. No stacked PRs.
-  - After the plan is approved, the build phase creates one sub-issue per task under the feature issue through `github-ops` (Haiku): title `T<n>: <task title>`, a short body (goal, covered requirements, link to `plan.md`). It then replaces each task's `Issue: pending` with `Issue: #<n>` and fills in the final `Branch:` and `PR title:` in `plan.md`. This is the only edit allowed to an approved plan; nothing else in it changes.
-  - Task PRs target the integration branch, not the default branch, so closing keywords such as "Closes #n" do not close the sub-issues. Do not rely on them.
-  - PRs are created on GitHub, in the repo from `CLAUDE.md`.
-  - The workflow never merges a PR and never pushes to `dev` or `main`. The user reviews and merges every task PR.
-  - After a wave's PRs are created, the build phase sets the workflow state to `waiting_review` and uses `/loop` (about every 10 minutes) to watch them. Each tick delegates the status check to `github-ops` (Haiku). When all are merged, it stops the loop and starts the next wave. When a PR is closed without merge, it stops the loop and tells the user. The loop is always stopped once the wave is resolved or the feature is done.
-  - After the final wave, it only creates the PR from the integration branch to `dev`.
-  - The commands: test command, dev server command and URL, and GitHub repo, as read from `CLAUDE.md`. When any task has a UI check, also the lane ports: lane A frontend and backend, lane B frontend and backend.
 - **Issues with the spec**: every place the spec is wrong, missing or contradicts the code or `CLAUDE.md`, each with what the plan does about it and `Owner: <who decides>.`. Never edit the spec, and never guess around a problem. If there are none, write `None.`.
 - **Risks**: bullets, each saying what could go wrong and what the plan does about it. Draw from the spec's areas of concern, naming each by number. Mark any task that must wait for an owner's answer.
 - **Checks**: fill the four parts:
