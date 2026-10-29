@@ -29,7 +29,7 @@ For each task `## T<n>: <title>` in plan order, call `github-ops` with `create-s
 
 - parent: the feature issue number,
 - title: `T<n>: <title>` (the heading text without the `[ ]`),
-- body: a short body with the task's Goal, the requirements it covers, its wave and lane, and the path `docs/features/<feature-name>/plan.md`,
+- task fields: its Goal, Covers, wave, Lane, Depends on, and the plan path `docs/features/<feature-name>/plan.md` (`github-ops` builds the body from them in the shared issue body format),
 - labels: `task`.
 
 Do not ask questions here. A task whose sub-issue already exists is returned as `already existed`; keep its number and create nothing. If one call fails, keep going with the others and report the failures at the end.

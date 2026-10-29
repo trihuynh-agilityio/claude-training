@@ -11,12 +11,12 @@ Repo: `trihuynh-agilityio/claude-training`. Pass `--repo trihuynh-agilityio/clau
 
 ## Operations
 
-1. **create-issue** (input: intent path). Read the intent. If line 2 does not say `Status: approved.`, stop and say so. Title = `Feature: ` plus the change name from the intent's line 1 (the text after `# Intent: `). Body = a short feature description of 3 to 6 lines drawn from the intent, in its words: the problem, the goal, and the main scope in a few bullets, then one last line `Intent: docs/features/<feature-name>/intent.md` (the intent path you were given). Never paste the whole intent. Look for an existing issue with that exact title and label `feature` (`gh issue list --label feature --state all`); if one exists, return its number and URL without creating anything. Otherwise create the `feature` and `phase:plan-done` labels if they are missing, create the issue with both labels, and return its number and URL.
+1. **create-issue** (input: intent path). Read the intent. If line 2 does not say `Status: approved.`, stop and say so. Title = `Feature: ` plus the change name from the intent's line 1 (the text after `# Intent: `). Body = the feature form of the issue body format below, drawn from the intent in its words. Never paste the whole intent. Look for an existing issue with that exact title and label `feature` (`gh issue list --label feature --state all`); if one exists, return its number and URL without creating anything. Otherwise create the `feature` and `phase:plan-done` labels if they are missing, create the issue with both labels, and return its number and URL.
 2. **find-issue** (input: intent path). Find the issue whose title exactly equals `Feature: ` plus the change name from the intent's line 1 (the text after `# Intent: `) and that has label `feature`, in any state. Return its number, URL and current label names, or `not found`. If none is found, also look for issues with that exact title and label `intent` (older issues): report how many exist and their numbers, but never relabel or edit them, and still answer `not found` for the main lookup unless the caller asked to use a legacy match.
 3. **comment** (input: issue number, text). Post the text as given.
 4. **swap-label** (input: issue number, label to remove, label to add). Create the new label if it is missing. Remove the old label and add the new one. If the old label is not on the issue, still add the new one and report that.
 5. **list-sub-issues** (input: parent issue number). Run `gh api repos/trihuynh-agilityio/claude-training/issues/<parent>/sub_issues --paginate -q '.[] | [.number,.title,.state] | @tsv'` and return the rows as number, title, state.
-6. **create-sub-issue** (input: parent issue number, title, body, labels). Do these in order:
+6. **create-sub-issue** (input: parent issue number, title, labels, and the task fields: goal, covers, wave, lane, depends on, plan path). Build the body yourself as the task form of the issue body format below; never take a ready-made body. Do these in order:
    1. Duplicate check: run list-sub-issues for the parent. If a sub-issue has exactly the given title, return its number and URL and say `already existed`; create nothing.
    2. Create each given label that is missing (`gh label list --repo trihuynh-agilityio/claude-training --json name -q '.[].name'`, then `gh label create <name> --repo trihuynh-agilityio/claude-training --color <hex> --description "<short text>"`).
    3. Create the issue with `gh issue create --repo trihuynh-agilityio/claude-training --title "<title>" --body "<body>" --label <labels>`. The number is the end of the URL it prints.
@@ -41,6 +41,25 @@ Repo: `trihuynh-agilityio/claude-training`. Pass `--repo trihuynh-agilityio/clau
 11. **append-pr-section** (input: PR number, section file path, optional heading, default `## Verification`). Read the section file; its first line must be the heading. Get the current body with `gh pr view <n> --repo trihuynh-agilityio/claude-training --json body -q .body`. If the body already has that heading, drop everything from it up to the next line that starts with `## ` (or the end), so a re-run replaces the old section. Append the section after one blank line, keeping the rest of the body byte for byte. Write the result to a temp file and run `gh pr edit <n> --repo trihuynh-agilityio/claude-training --body-file <temp file>`. Return the PR number and URL and whether the section was `added` or `replaced`. Never change the title, base, labels or any other field.
 
 12. **close-issue** (input: issue number). Only for a task sub-issue. First `gh issue view <n> --repo trihuynh-agilityio/claude-training --json state,labels`. Refuse, and close nothing, if the issue has the label `feature` (the feature issue is never closed here) or lacks the label `task`. If it is already closed, say so and change nothing. Otherwise run `gh issue close <n> --repo trihuynh-agilityio/claude-training --reason completed`. Return the number and `closed` or `already closed`.
+
+## Issue body format
+
+Every issue the workflow creates (feature, `T<n>` task, `F<n>` fix) has the same three sections, in this order, and nothing else. Write the body to a temp file and pass it with `--body-file`, never inline.
+
+```markdown
+## Summary
+<one or two plain sentences>
+
+## Scope
+- <bullet>
+
+## Links
+- <bullet>
+```
+
+- **Feature** (create-issue): Summary = the intent's problem in one sentence, then its goal in one sentence. Scope = 2 to 4 bullets from the intent's proposed outcome and constraints (what changes, and what is out). Links = `- Intent: \`docs/features/<feature-name>/intent.md\``.
+- **Task or fix** (create-sub-issue): Summary = the task's Goal as given. Scope = three bullets, `- Covers: R1, R2`, `- Wave <n>, lane <A|B|solo>`, `- Depends on: T1, T2` (or `none`). Links = `- Feature: #<parent>` and `- Plan: \`<plan path>\` (<T<n> or F<n>>)`.
+- Paths are repo-relative in backticks, not URLs: the docs live on the unpushed feature branch until `build-feature` pushes it.
 
 ## Rules
 
