@@ -23,7 +23,7 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 ## 1. Preconditions
 
 1. Read `plan.md` (line 2 must be `Status: approved.`), `intent.md`, `spec.md`.
-2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. A task whose branch is marked "only if fixes are needed" and has no PR (T7) is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
+2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. The integration task (its branch is marked "only if fixes are needed"; `build-position.sh` prints it with `integration=yes`), when it has no PR, is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
 3. Run `build-position.sh <plan> <states file>`. Every task must be `done`. Otherwise stop, list each task that is not (OPEN with its PR number, CLOSED, NONE) and tell the user to merge or finish them. Write no state.
 4. `github-ops find-pr <integration branch>`: the final PR must exist, be OPEN and have base `dev`. Otherwise stop and say so (run `build-feature` to open it).
 5. Count the `## Fix round ` headings in `plan-fix.md` (`fix_round`; 0 when the file does not exist). If a FAIL would need a third one, step 8 escalates instead.
@@ -41,7 +41,7 @@ Launch one `Agent` (`model: haiku`) whose only job is to run `verify-checks.sh <
 
 ## 4. Feature E2E (Sonnet)
 
-Only if the feature has UI (a task has a `UI check:`). Derive the flows from the spec's requirements and the `UI check:` scenarios of the tasks: join scenarios that are one user journey, keep each flow's requirement ids. Launch the `e2e-verifier` agent (`model: sonnet`) with the feature name, project root, `<WORKTREE>/expense-tracker`, the evidence folder and the flows. Add no Playwright test: only a critical flow the plan already lists as a test would be run as one, and this plan lists none. `BLOCKED` is never a pass.
+Only if the feature has UI (a task has a `UI check:`). Derive the flows from the spec's requirements and the `UI check:` scenarios of the tasks: join scenarios that are one user journey, keep each flow's requirement ids. Launch the `e2e-verifier` agent (`model: sonnet`) with the feature name, project root, `<WORKTREE>/expense-tracker`, the evidence folder and the flows. Add no Playwright test: a critical flow runs as a Playwright test only if the plan's Tests already list one. `BLOCKED` is never a pass.
 
 ## 5. AC verification (this skill)
 
@@ -49,7 +49,7 @@ Build a table for every requirement in the plan's AC coverage, none left out: `A
 
 - Test evidence: `acceptance.json` (Vitest JSON). Test names sit under a `describe` whose title starts with the R id; a requirement is proven by passing tests in that block, and the plan's Test plan names the file. Cross-check that the file exists and the block is not empty.
 - E2E evidence: the flows' `e2e-result.md` lines for that requirement id.
-- VERIFIED only if a passing automated check or E2E flow proves it, and no check that covers it failed. Everything else is UNVERIFIED with the reason (no test found, test failed, E2E blocked, only partly covered). A requirement a test cannot show (for example R14, "nothing else changed") may be proven by the step 6 diff check; say which.
+- VERIFIED only if a passing automated check or E2E flow proves it, and no check that covers it failed. Everything else is UNVERIFIED with the reason (no test found, test failed, E2E blocked, only partly covered). A requirement a test cannot show (for example "nothing else changed") may be proven by the step 6 diff check; say which.
 
 ## 6. Whole-feature review (read-only)
 

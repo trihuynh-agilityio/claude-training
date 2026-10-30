@@ -5,8 +5,10 @@
 # each task line ends with plan=<file> so callers pass the right plan path for that task.
 # states-file, one line each, tab or space separated (from github-ops get-pr-state):
 #   <branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]
-#   CHECK <task-id> PASS     the integration check of a task that has no PR of its own (T7)
-# Output: one line per task, then CURRENT_WAVE, ACTION (start|wait|blocked|finish) and the tasks it concerns.
+#   CHECK <task-id> PASS     the integration check of a task that has no PR of its own
+# The integration task is the one whose Branch says "(only if fixes are needed)"; its line has integration=yes.
+# Output: one line per task, then CURRENT_WAVE, ACTION (start|integrate|wait|blocked|finish) and the tasks it concerns.
+# ACTION=integrate: only integration tasks are left to start; run their check in the caller, not as a lane.
 # Task status: done (MERGED, or CHECK PASS), waiting (OPEN), closed (CLOSED unmerged), todo, resume (todo with a local branch).
 
 plan="${1:-}"; states="${2:-}"
@@ -32,7 +34,7 @@ state_of() { awk -v b="$1" '$1 == b { print $2; exit }' "$states"; }
 pr_of()    { awk -v b="$1" '$1 == b { print $3; exit }' "$states"; }
 checked()  { awk -v t="$1" '$1 == "CHECK" && $2 == t && $3 == "PASS" { f = 1 } END { exit !f }' "$states"; }
 
-order=(); st_list=(); wv_list=()
+order=(); st_list=(); wv_list=(); int_list=()
 while IFS=$'\t' read -r id wave lane issue branch optional src; do
   st="$(state_of "$branch")"; pr="$(pr_of "$branch")"
   s=todo
@@ -46,8 +48,9 @@ while IFS=$'\t' read -r id wave lane issue branch optional src; do
       fi ;;
   esac
   [[ "$issue" =~ ^#[0-9]+$ ]] || s=blocked_no_issue
-  order+=("$id"); st_list+=("$s"); wv_list+=("$wave")
-  printf '%s wave=%s lane=%s issue=%s branch=%s pr=%s status=%s plan=%s\n' "$id" "$wave" "$lane" "$issue" "${branch:-none}" "${pr:--}" "$s" "$src"
+  order+=("$id"); st_list+=("$s"); wv_list+=("$wave"); int_list+=("$optional")
+  printf '%s wave=%s lane=%s issue=%s branch=%s pr=%s status=%s integration=%s plan=%s\n' "$id" "$wave" "$lane" "$issue" \
+    "${branch:-none}" "${pr:--}" "$s" "$( ((optional)) && echo yes || echo no)" "$src"
 done <<<"$tasks"
 
 current=""
@@ -62,7 +65,7 @@ if [[ -z "$current" ]]; then
 fi
 echo "CURRENT_WAVE=$current"
 
-todo=(); closed=(); bad=(); wait=()
+todo=(); integ=(); closed=(); bad=(); wait=()
 for i in "${!order[@]}"; do
   id="${order[$i]}"
   case "${st_list[$i]}" in
@@ -71,7 +74,9 @@ for i in "${!order[@]}"; do
   esac
   [[ "${wv_list[$i]}" == "$current" ]] || continue
   case "${st_list[$i]}" in
-    todo | resume) todo+=("$id") ;;
+    todo | resume)
+      # An integration task with a local branch needed fixes: it runs as a normal lane.
+      if ((int_list[i])) && [[ "${st_list[$i]}" == todo ]]; then integ+=("$id"); else todo+=("$id"); fi ;;
     waiting) wait+=("$id") ;;
   esac
 done
@@ -79,4 +84,5 @@ done
 if ((${#closed[@]})); then echo "ACTION=blocked"; echo "TASKS=${closed[*]} (PR closed without merge)"
 elif ((${#bad[@]})); then echo "ACTION=blocked"; echo "TASKS=${bad[*]} (no sub-issue number; run create-task-issues)"
 elif ((${#todo[@]})); then echo "ACTION=start"; echo "TASKS=${todo[*]}"
+elif ((${#integ[@]})) && ((${#wait[@]} == 0)); then echo "ACTION=integrate"; echo "TASKS=${integ[*]}"
 else echo "ACTION=wait"; echo "TASKS=${wait[*]}"; fi

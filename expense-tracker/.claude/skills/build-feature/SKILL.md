@@ -28,12 +28,13 @@ Then write the state file (see "State").
 
 ## 2. Position
 
-1. Call `github-ops` `get-pr-state` with the `Branch:` of every task. Write its rows to `<project root>/.claude/workflow/pr-states.tsv` as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]`. If a task has no PR but a passed integration check (T7, see step 5), add the line `CHECK <task-id> PASS`.
-2. Run `build-position.sh <plan path> .claude/workflow/pr-states.tsv`. Its `ACTION` is the next step:
+1. Call `github-ops` `get-pr-state` with the `Branch:` of every task. Write its rows to `<project root>/.claude/workflow/pr-states.tsv` as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]`. If the integration task has no PR but its check passed (state `tasks.<id>.status` is `done`, see step 5), add the line `CHECK <task-id> PASS`.
+2. Run `build-position.sh <plan path> .claude/workflow/pr-states.tsv`. The integration task is the one it prints with `integration=yes` (its `Branch:` says "only if fixes are needed"); never assume its id. Its `ACTION` is the next step:
    - `blocked`: a PR was closed without merge, or a task has no issue. Set status `blocked`, label a closed task `status:blocked`, report, stop.
    - `start`: go to step 3 for the listed tasks.
    - `wait`: go to step 4.
-   - `finish`: go to step 5.
+   - `integrate`: only the integration task is left; go to step 5 for it.
+   - `finish`: go to step 5, item 2.
 3. Update the state's wave and per-task statuses from the output. Label every `done` task whose state did not say `done` before `status:done` and close its sub-issue (see "Task labels").
 
 ## 3. Wave start
@@ -51,7 +52,7 @@ Each lane keeps its own worktree, its fixed ports (A 5181/8081, B 5182/8082) and
 
 A lane returns `PR_OPEN <url>`, `BLOCKED <reason>` or `FAILED <reason>`. Label its task `status:in-review` on `PR_OPEN` and `status:blocked` otherwise. If a lane is BLOCKED or FAILED, let the other lane finish its current pipeline, then stop: set status `blocked`, report, and do not start another wave.
 
-A task with no PR of its own (T7: "no commit and no task PR if nothing to change") is not a lane run: do it in step 5.
+The integration task ("no commit and no task PR if nothing to change") is never a lane run: `build-position.sh` reports it as `ACTION=integrate`, and step 5 does it.
 
 ## 4. Wait for review
 
@@ -81,9 +82,9 @@ Run by the watch when `get-pr-feedback` returns new feedback on an OPEN task PR.
 
 ## 5. Finish
 
-Reached when `ACTION=finish`, or when the only unfinished task is the integration task (T7). Label T7 `status:in-progress` first; it goes to `status:done` (and its issue is closed) when its check passes, or to `status:blocked`.
+Reached with `ACTION=integrate` (start at item 1) or `ACTION=finish` (start at item 2: the integration check already passed, or the integration task needed fixes and its PR is merged).
 
-1. In a worktree of the integration branch (`git worktree add <repo root>/.claude/worktrees/<name with - for /> <name>`, then `npm ci --prefer-offline` in `frontend/`), run the plan's commands once: `npm test`, `npm run lint`, `npm run build`. If anything fails, set status `blocked`, report the output and stop. On success, add `CHECK T7 PASS` to the states file.
+1. **Integration check**, for the task listed in `TASKS=`. Label it `status:in-progress` first. In a worktree of the integration branch (`git worktree add <repo root>/.claude/worktrees/<name with - for /> <name>`, then `npm ci --prefer-offline` in `frontend/`), run the plan's commands once: `npm test`, `npm run lint`, `npm run build`. If anything fails, label the task `status:blocked`, set status `blocked`, report the output and stop. On success, add `CHECK <task-id> PASS` to the states file, set `tasks.<task-id>.status` to `done`, label it `status:done` and close its sub-issue.
 2. Check `git diff --stat dev...<integration branch>` touches only files from the plan and `plan-fix.md` plus this feature's docs.
 3. `github-ops find-pr <integration branch>`; if a PR exists, reuse it. Otherwise write the body to `<project root>/.claude/workflow/pr-final.md`: the `pr-description` output for `dev...<integration branch>` (base `dev`, skip its step 4 and title), then a table of the task PRs (task, title, PR link), the acceptance table from plan.md (requirement, task, test), the suite result, and as the last line `Created by workflow; review and merge by a human.`. Then `github-ops create-pr` with head = the integration branch, base = `dev`, title = `Feature: <H1 of intent.md without "Intent: ">`.
 4. `github-ops comment` on the feature issue (found with `find-issue`) listing the task PRs and the final PR, then `swap-label` `phase:tasks-ready` to `phase:build-done`.
@@ -95,12 +96,12 @@ Each task sub-issue (its `Issue:` in the plan) carries one status label beside `
 
 | Label | When |
 |---|---|
-| `status:in-progress` | its lane (or the T7 check) starts |
+| `status:in-progress` | its lane (or the integration check) starts |
 | `status:in-review` | its PR is open |
-| `status:done` | its PR is merged (T7: the check passed) |
-| `status:blocked` | its lane is BLOCKED or FAILED, its PR was closed without merge, or the T7 check failed |
+| `status:done` | its PR is merged (integration task: the check passed) |
+| `status:blocked` | its lane is BLOCKED or FAILED, its PR was closed without merge, or the integration check failed |
 
-Set one with `github-ops swap-label <issue> <previous status label> <new label>`; the previous one is the label of the row before (any status label the issue has, if unsure). `swap-label` creates a missing label and still adds the new one when the old one is absent. Labels never close an issue: when a task reaches `status:done`, also call `github-ops close-issue <issue>` on that task's sub-issue (T7: when its check passes). Close only task sub-issues, never the feature issue (#22 here): it stays open until the user decides, after the final PR to `dev` is merged. Never close a `blocked` or `in-review` task.
+Set one with `github-ops swap-label <issue> <previous status label> <new label>`; the previous one is the label of the row before (any status label the issue has, if unsure). `swap-label` creates a missing label and still adds the new one when the old one is absent. Labels never close an issue: when a task reaches `status:done`, also call `github-ops close-issue <issue>` on that task's sub-issue (the integration task: when its check passes). Close only task sub-issues, never the feature issue (the one `find-issue` returns): it stays open until the user decides, after the final PR to `dev` is merged. Never close a `blocked` or `in-review` task.
 
 ## State
 
