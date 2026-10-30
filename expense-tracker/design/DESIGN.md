@@ -105,7 +105,7 @@ Give every amount `font-variant-numeric: tabular-nums`.
 | `CategoryChip` | Pill with a color dot. Active is ink-filled. Single-select, with "All categories" first. |
 | `StatusBadge` | Pill: On track, Near limit or Over budget. |
 | `ProgressBar` | 8–14px track `#EDEDE8` with the fill in the status color, capped at 100%. Optional black "today" tick at day ÷ days-in-month. Uses `role="progressbar"`. |
-| `TransactionRow` | Tile, note (ellipsis), category, and amount on the right. Desktop adds edit and delete icon buttons. On mobile the whole row is a link to Edit. |
+| `TransactionRow` | Tile, note (ellipsis), category, and amount on the right. Action icon buttons in order: Edit, Duplicate, Delete. Duplicate shows on mobile next to Edit; Delete is desktop only. |
 | `DayGroupHeader` | `Today · Fri 16 Oct` with the daily subtotal on the right, on a `#FAFAF7` band. |
 | `ConfirmDialog` | `role="alertdialog"`. Shows the expense summary (tile, note, category, date, amount). Cancel has default focus; the danger button is labelled "Delete expense". Becomes a bottom sheet on mobile. |
 | `RecurringBadge` | Small neutral pill "Recurring" with a repeat icon, shown on a `TransactionRow` added by a rule. Text label always present; `--ink-2` on `--line-soft`. |
@@ -176,6 +176,7 @@ Give every amount `font-variant-numeric: tabular-nums`.
 - Show the summary "Fix N fields to save this expense." at the top with `role="alert"`, and move focus to the first invalid field.
 - Quick amount chips: 50.000, 100.000, 200.000, 500.000.
 - On success the form closes and a toast appears. If the expense pushes its category over budget, the toast says so.
+- Duplicate opens this form in add mode (title "Add expense", button "Add expense", no Delete) with Amount, Category and Note copied from the original and Date set to today.
 - Edit mode uses the title "Edit expense" and the button "Save changes". It has a ghost "Delete" button that asks for inline confirmation before deleting.
 
 ### Budget
@@ -194,6 +195,7 @@ The canvas board "Key user flows" has the full step-by-step version. In short:
 3. **Delete**: trash icon (or Delete inside Edit on mobile), then the confirm dialog with Cancel focused, then delete and a toast. Delete is never one tap.
 4. **Find**: search, then category chip, then date range, then grouped results. If nothing matches, show the empty state and "Clear filters".
 5. **Budget**: Edit budgets, adjust amounts with a live allocated total, then save. Over-allocation blocks saving.
+6. **Duplicate**: Duplicate icon on a row, then the Add expense form prefilled (date today), then save to add a new expense. The original is unchanged. Cancel adds nothing.
 
 ## 8. Accessibility checklist
 

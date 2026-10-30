@@ -49,6 +49,7 @@ function deferred<T>() {
 const handlers = {
   onAdd: vi.fn(),
   onEdit: vi.fn(),
+  onDuplicate: vi.fn(),
   onDelete: vi.fn(),
   onViewAll: vi.fn(),
   onOpenBudget: vi.fn(),
@@ -212,6 +213,15 @@ describe('DashboardPage', () => {
     await userEvent.setup().click(await screen.findByRole('button', { name: 'View all' }))
 
     expect(handlers.onViewAll).toHaveBeenCalled()
+  })
+
+  it('duplicates the recent row that was clicked', async () => {
+    mockGetSummary.mockResolvedValue(summary())
+    renderPage()
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Duplicate Phở bò' }))
+
+    expect(handlers.onDuplicate).toHaveBeenCalledWith(EXPENSES[0])
   })
 
   describe('budget', () => {
