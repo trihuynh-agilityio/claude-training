@@ -23,16 +23,21 @@ Read `docs/features/<feature-name>/plan.md`.
 
 Call the `github-ops` agent with `find-issue docs/features/<feature-name>/intent.md`. Keep its number and its current labels. If it reports `not found`, stop and tell the user: the feature issue is missing, so Phase 1 is not finished. Do not create one.
 
-## 3. Create the sub-issues
+## 3. Create the sub-issues and update the feature issue
 
-For each task `## T<n>: <title>` in plan order, call `github-ops` with `create-sub-issue`:
+Call `github-ops` once, with one batch. First one `create-sub-issue` line per task `## T<n>: <title>`, in plan order:
 
 - parent: the feature issue number,
 - title: `T<n>: <title>` (the heading text without the `[ ]`),
 - task fields: its Goal, Covers, wave, Lane, Depends on, and the plan path `docs/features/<feature-name>/plan.md` (`github-ops` builds the body from them in the shared issue body format),
 - labels: `task`.
 
-Do not ask questions here. A task whose sub-issue already exists is returned as `already existed`; keep its number and create nothing. If one call fails, keep going with the others and report the failures at the end.
+Then two more lines:
+
+- `comment` on the feature issue with the task list, one line per task: `#$<k>.number`, title, wave and lane, where `<k>` is that task's batch line. Write it to `<project root>/.claude/workflow/task-list.md` first and pass `--body-file`.
+- `swap-label` on the feature issue: its current phase label from step 2 (`phase:design-done`, or `phase:plan-done` if that is the one present) to `phase:tasks-ready`.
+
+Do not ask questions here. A task whose sub-issue already exists is returned as `already existed`; keep its number. If the batch stops at an ERROR, keep the numbers of the OK lines, report the error, and run the same batch again once the cause is fixed: lines that already ran come back as `already existed`.
 
 ## 4. Write the numbers into the plan
 
@@ -46,14 +51,7 @@ This is the only edit allowed on an approved plan. Change nothing else in it.
 
 Then commit the approved plan, numbers included, to the feature's integration branch: `.claude/scripts/commit-feature-doc.sh <feature-name> <feature issue number> plan.md`. It never pushes and leaves the current checkout untouched. If it fails, tell the user and carry on.
 
-## 5. Update the feature issue
-
-Tell the user which phase label the feature issue has now (from step 2). Then call `github-ops`:
-
-1. `comment` on the feature issue with the task list: number, title, wave and lane for each task.
-2. `swap-label` on the feature issue: its current phase label (`phase:design-done`, or `phase:plan-done` if that is the one present) to `phase:tasks-ready`.
-
-## 6. Hand off
+## 5. Hand off
 
 Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `build-feature` (the plan was approved in step 1, so no further command is needed):
 

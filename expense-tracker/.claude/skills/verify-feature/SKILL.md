@@ -23,15 +23,15 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 ## 1. Preconditions
 
 1. Read `plan.md` (line 2 must be `Status: approved.`), `intent.md`, `spec.md`.
-2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. A task whose branch is marked "only if fixes are needed" and has no PR (T7) is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
+2. Call `github-ops` once with one read-only batch: `get-pr-state` with the `Branch:` of every task, `find-pr <integration branch>` and `find-issue docs/features/<feature-name>/intent.md`. Keep the final PR and the feature issue number for steps 4 and 8. Write the `get-pr-state` rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. A task whose branch is marked "only if fixes are needed" and has no PR (T7) is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
 3. Run `build-position.sh <plan> <states file>`. Every task must be `done`. Otherwise stop, list each task that is not (OPEN with its PR number, CLOSED, NONE) and tell the user to merge or finish them. Write no state.
-4. `github-ops find-pr <integration branch>`: the final PR must exist, be OPEN and have base `dev`. Otherwise stop and say so (run `build-feature` to open it).
+4. From the batch's `find-pr`: the final PR must exist, be OPEN and have base `dev`. Otherwise stop and say so (run `build-feature` to open it).
 5. Count the `## Fix round ` headings in `plan-fix.md` (`fix_round`; 0 when the file does not exist). If a FAIL would need a third one, step 8 escalates instead.
 6. Write the state (not in `--dry-run`): `{"feature": "<name>", "phase": "verify", "status": "in_progress", "handed_off": true, "fix_round": <n>}`. `handed_off` stays `true` so `next-phase.sh` never starts anything from it.
 
 ## 2. Throwaway worktree
 
-`verify-worktree.sh create <feature-name> <integration branch>`. It fetches `dev` and the branch (fast-forward only), checks the branch out as local `verify/<feature-name>` in `<repo root>/.claude/worktrees/verify-<feature-name>`, and merges `github/dev` into that local branch only when `dev` moved ahead. Exit 3 means a merge conflict: stop, tell the user (the script already removed the worktree), never resolve it. Keep `WORKTREE`, `INTEGRATION_HEAD`, `DEV_HEAD`, `MERGED` for the report. The project folder inside is `<WORKTREE>/expense-tracker`. Never push from it; the push hook and deny rules also forbid anything but `feat/*`.
+`verify-worktree.sh create <feature-name> <integration branch>`. It fetches `dev` and the branch (fast-forward only), checks the branch out as local `verify/<feature-name>` in `<repo root>/.claude/worktrees/verify-<feature-name>`, and merges `github/dev` into that local branch only when `dev` moved ahead. Exit 3 means a merge conflict: stop, tell the user (the script already removed the worktree), never resolve it. Keep `WORKTREE`, `INTEGRATION_HEAD`, `DEV_HEAD`, `MERGED` for the report. The project folder inside is `<WORKTREE>/expense-tracker`. Never push from it; the push hook and deny rules also forbid pushing `dev` or `main`.
 
 From here on, whatever happens (a stop, an error, FAIL), run `verify-worktree.sh remove <feature-name>` last.
 
@@ -69,12 +69,13 @@ Never commit or push it. Step 8 posts it.
 
 ## 8. Hand-off
 
-Call `github-ops` (Haiku), not in `--dry-run`:
+Call `github-ops` (Haiku) once with one batch, not in `--dry-run`:
 
-1. `comment` on the feature issue with the whole report: write a copy of `verification.md` to the scratchpad with `<!-- workflow-reply -->` as its first line and its `# Verification:` heading turned into `## Verification report:`, and have `github-ops` post it with `gh issue comment <n> --body-file <copy>`. Keep the comment URL it returns.
-2. `append-pr-section` on the final PR: a `## Verification` section with the verdict, the AC table summary (counts, UNVERIFIED rows), a link to that issue comment for the full report, and the minor findings. The rest of the body stays as it is.
-3. PASS: `swap-label` `phase:build-done` to `phase:verify-done`; state `{"feature": …, "phase": "verify", "status": "done", "handed_off": true}`.
-4. FAIL: leave the label; state status `failed`, with `fix_round`. Then do "Failure handling".
+1. `comment <feature issue> --body-file <copy>`: the whole report, as a copy of `verification.md` in the scratchpad with `<!-- workflow-reply -->` as its first line and its `# Verification:` heading turned into `## Verification report:`. Keep the comment URL it returns.
+2. `append-pr-section <final PR> <section file>`: a `## Verification` section with the verdict, the AC table summary (counts, UNVERIFIED rows), a link to that issue comment for the full report (write it as `$1.url`; `github-ops` fills it in), and the minor findings. The rest of the body stays as it is.
+3. PASS only: `swap-label <feature issue> phase:build-done phase:verify-done`.
+
+Then the state. PASS: `{"feature": …, "phase": "verify", "status": "done", "handed_off": true}`. FAIL: the label stays; state status `failed`, with `fix_round`. Then do "Failure handling".
 
 Finally `verify-worktree.sh remove <feature-name>`. Report in a few lines: verdict, failed checks, UNVERIFIED ACs, blocker and major findings, the PR link, what the user does next.
 
@@ -114,9 +115,8 @@ Verify never edits code on the integration branch. On FAIL the report is already
    "Last wave" and "last task number" count both `plan.md` and the earlier rounds of `plan-fix.md`. Headings use `## Wave <n>` and `## T<n>:` because `build-position.sh` only reads those. Put the F label in the **Goal** line (`Fix F<n>: …`).
 3. **Ask.** Tell the user the path and show a table (task, what it fixes, files, size). `AskUserQuestion`: approve, change (the user edits or says what; then update the draft and ask again), or "I'll handle it myself". On "I'll handle it myself", delete the draft round you wrote and stop. Nothing is created before the approval.
 4. **After approval.** Remove ` (draft)` from the round heading. Then do what `create-task-issues` does for these tasks:
-   1. `github-ops create-sub-issue` per task (parent: the feature issue, title `F<n>: <title>`, label `task`, and the task fields: goal, covers, wave, lane, depends on and the path of `plan-fix.md`, from which `github-ops` builds the body in the shared issue body format). A task whose issue already exists is kept.
+   1. One `github-ops` batch: a `create-sub-issue` line per task (parent: the feature issue, title `F<n>: <title>`, label `task`, and the task fields: goal, covers, wave, lane, depends on and the path of `plan-fix.md`, from which `github-ops` builds the body in the shared issue body format), then `comment <feature issue> --body-file <file>` with the fix tasks (`#$<k>.number`, title, what they fix) and the round. A task whose issue already exists is kept.
    2. Write the numbers back into `plan-fix.md`: `Issue: #<n>`, `Branch:` with the name in backticks as in `plan.md` (`` `feat/<n>-<slug>` ``; `build-position.sh` only reads a backticked branch), and `<sub-issue>` in `PR title` replaced by `<n>`. This is the only edit after approval.
-   3. `github-ops comment` on the feature issue: the fix tasks (number, title, what they fix) and the round.
 5. **Start the fix build.** Write the state `{"feature": "<feature-name>", "phase": "tasks", "status": "done", "handed_off": false}`. The `Stop` hook then starts `build-feature`, which runs the fix wave exactly like any wave: one task per lane (implementer, `Verify`, `check-task.sh`), `review-task` with fixes, the UI check when the task has one, `create-task-pr`, then waits for you to merge the fix PRs. When the fix wave is merged and the final PR is up to date, `build-feature` finishes and the hook starts `verify-feature` again. Tell the user in two lines what was created and that the fix build is starting.
 
 ## State

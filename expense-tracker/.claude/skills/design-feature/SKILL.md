@@ -43,10 +43,13 @@ Commit the approved spec to the feature's integration branch: `.claude/scripts/c
 
 ## 7. Hand off
 
-Call the `github-ops` agent once per operation:
+Call the `github-ops` agent once, with one batch:
 
-1. `comment` on the issue found in step 1, with the spec path.
-2. `swap-label` on that issue: `phase:plan-done` to `phase:design-done`.
+```
+batch:
+1. comment <issue from step 1> "Spec approved: `docs/features/<feature-name>/spec.md`"
+2. swap-label <issue from step 1> phase:plan-done phase:design-done
+```
 
 ## 8. Finish
 
