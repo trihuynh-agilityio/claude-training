@@ -31,7 +31,7 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 
 ## 2. Throwaway worktree
 
-`verify-worktree.sh create <feature-name> <integration branch>`. It fetches `dev` and the branch (fast-forward only), checks the branch out as local `verify/<feature-name>` in `<repo root>/.claude/worktrees/verify-<feature-name>`, and merges `github/dev` into that local branch only when `dev` moved ahead. Exit 3 means a merge conflict: stop, tell the user (the script already removed the worktree), never resolve it. Keep `WORKTREE`, `INTEGRATION_HEAD`, `DEV_HEAD`, `MERGED` for the report. The project folder inside is `<WORKTREE>/expense-tracker`. Never push from it; the push hook and deny rules also forbid anything but `feat/*`.
+`verify-worktree.sh create <feature-name> <integration branch>`. It fetches `dev` and the branch (fast-forward only), checks the branch out as local `verify/<feature-name>` in `<repo root>/.claude/worktrees/verify-<feature-name>`, and merges `github/dev` into that local branch only when `dev` moved ahead. Exit 3 means a merge conflict: stop, tell the user (the script already removed the worktree), never resolve it. Keep `WORKTREE`, `INTEGRATION_HEAD`, `DEV_HEAD`, `MERGED` for the report. The project folder inside is `<WORKTREE>/expense-tracker`. Never push from it; the push hook and deny rules also forbid pushing `dev` or `main`.
 
 From here on, whatever happens (a stop, an error, FAIL), run `verify-worktree.sh remove <feature-name>` last.
 

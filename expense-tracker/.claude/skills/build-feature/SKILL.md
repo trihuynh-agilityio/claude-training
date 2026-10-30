@@ -120,7 +120,7 @@ Set one with a `swap-label <issue> <previous status label> <new label>` line in 
 
 ## Rules
 
-- Never merge a PR, never push `dev` or `main`, never force push, never use `gh pr merge` or `gh pr review`. The deny rules and the `feat/*` push hook stay.
+- Never merge a PR, never push `dev` or `main`, never force push, never use `gh pr merge` or `gh pr review`. The deny rules and the `dev`/`main` push hook stay.
 - Never edit `intent.md` or `spec.md`; `plan.md` and `plan-fix.md` are not edited here at all.
 - Opus only for this skill; the lanes and implementer are Sonnet; GitHub writes are Haiku (`github-ops`), one batch per decision point; PR states and the watch use `gh-watch.sh`.
 - Report concisely at each stop: wave number, per-task status, PR links, and what the user does next.

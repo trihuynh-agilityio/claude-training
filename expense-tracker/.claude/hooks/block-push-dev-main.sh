@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse hook (Bash): a second layer behind the deny rules in settings.json.
-# Blocks `git push` unless every destination ref matches feat/*. Exit 2 blocks the call.
+# Blocks `git push` when any destination ref is dev or main; every other branch may be pushed. Exit 2 blocks the call.
 
 input="$(cat)"
 command="$(jq -r '.tool_input.command // empty' <<<"$input")"
@@ -27,7 +27,7 @@ current_branch() {
 positional=()
 for tok in $args; do
   case "$tok" in
-    --all | --mirror) block "git push $tok pushes branches other than feat/*; push one feat/* branch by name." ;;
+    --all | --mirror) block "git push $tok can push dev or main; push one branch by name." ;;
     -*) ;;
     *) positional+=("$tok") ;;
   esac
@@ -44,7 +44,8 @@ for spec in "${refspecs[@]}"; do
   dest="${dest##*:}"
   dest="${dest#refs/heads/}"
   [[ "$dest" == "HEAD" ]] && dest="$(current_branch)"
-  [[ "$dest" == feat/* ]] || block "git push may only target feat/* branches (got '${dest:-empty}'). Never push dev, main or other branches."
+  [[ -n "$dest" ]] || block "git push target is unknown; push one branch by name."
+  [[ "$dest" == dev || "$dest" == main ]] && block "never push dev or main (got '$dest'); push a feature branch and open a PR."
 done
 
 exit 0
