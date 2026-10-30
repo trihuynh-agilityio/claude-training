@@ -3,22 +3,25 @@
 # and the commit it reviewed is still CODE_HEAD (see code-head.sh). Any code commit after the
 # review therefore forces a new review. The report itself stays local and is never committed.
 #   check-review.sh <task-id> [plan-path]
-# Run from the task's worktree, inside its expense-tracker/ folder. The plan path gives the
-# feature name; without it the script looks for docs/features/*/reviews/<task-id>.md.
+# Run from the task's worktree, inside its project folder. The plan path gives the
+# feature name; without it the script looks for <docs_dir>/*/reviews/<task-id>.md.
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib/config.sh" || exit 2
+docs="$(cfg .docs_dir)"
 
 task="${1:-}"
 plan="${2:-}"
 [[ -n "$task" ]] || { echo "usage: check-review.sh <task-id> [plan-path]" >&2; exit 2; }
 
 if [[ -n "$plan" ]]; then
-  report="docs/features/$(basename "$(dirname "$plan")")/reviews/$task.md"
+  report="$docs/$(basename "$(dirname "$plan")")/reviews/$task.md"
 else
-  report="$(ls docs/features/*/reviews/"$task".md 2>/dev/null | head -1)"
+  report="$(ls "$docs"/*/reviews/"$task".md 2>/dev/null | head -1)"
 fi
 
 fail() { echo "check-review $task: FAILED: $1" >&2; exit 1; }
 
-[[ -n "$report" && -f "$report" ]] || fail "no review report (expected docs/features/<feature>/reviews/$task.md)"
+[[ -n "$report" && -f "$report" ]] || fail "no review report (expected $docs/<feature>/reviews/$task.md)"
 
 # The final verdict section is the last "## Final verdict" block.
 final="$(awk '/^## Final verdict/ { f = 1; buf = ""; next } f { buf = buf $0 "\n" } END { printf "%s", buf }' "$report")"

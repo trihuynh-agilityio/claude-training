@@ -2,39 +2,42 @@
 # Commits approved feature docs (intent.md, spec.md, plan.md) to the feature's integration branch,
 # without touching the current checkout. Nothing here is ever pushed: build-feature pushes the branch.
 #   commit-feature-doc.sh <feature-name> <feature-issue-number> <doc>...
-# <doc> is a file name inside docs/features/<feature-name>/ (intent.md, spec.md, plan.md).
-# The branch is feat/<issue>-<feature-name>; it is created from local `dev` (never `main`) if missing.
-# The docs are copied from this checkout into a temporary worktree at
-# <repo root>/.claude/worktrees/feat-<issue>-<feature-name>, committed there, and the worktree is removed.
-# Prints BRANCH=, COMMIT= (or COMMIT=none when the branch already had identical files).
+# <doc> is a file name inside <docs_dir>/<feature-name>/ (intent.md, spec.md, plan.md).
+# The branch name comes from naming.integration_branch in workflow.json. If it is missing, it is
+# created from the freshly fetched <remote>/<base branch> (never a stale local copy, never main).
+# The docs are copied from this checkout into a temporary worktree, committed there, and the
+# worktree is removed. Prints BRANCH=, COMMIT= (or COMMIT=none when the branch already had identical files).
 
 set -euo pipefail
+source "$(dirname "$0")/lib/config.sh"
 
 feature="${1:-}"; issue="${2:-}"; shift 2 2>/dev/null || true
 [[ "$feature" =~ ^[a-z0-9][a-z0-9-]*$ && "$issue" =~ ^[0-9]+$ && $# -gt 0 ]] || {
   echo "usage: commit-feature-doc.sh <feature-name> <feature-issue-number> <doc>..." >&2; exit 2; }
 
-project="$(cd "$(dirname "$0")/../.." && pwd)"
-top="$(cd "$(git -C "$project" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)"
-rel="${project#"$top"/}"
-branch="feat/$issue-$feature"
-wt="$top/.claude/worktrees/feat-$issue-$feature"
-docs="docs/features/$feature"
+remote="$(cfg .github.remote)"; base="$(cfg .branches.base)"
+branch="$(wf_fill "$(cfg .naming.integration_branch)" feature_issue="$issue" feature_slug="$feature")"
+wt="$(wf_worktree_path "$branch")"
+docs="$(cfg .docs_dir)/$feature"
 
 for doc in "$@"; do
-  [[ "$doc" =~ ^[a-z-]+\.md$ && -f "$project/$docs/$doc" ]] || { echo "commit-feature-doc: no $docs/$doc" >&2; exit 2; }
+  [[ "$doc" =~ ^[a-z-]+\.md$ && -f "$WF_PROJECT/$docs/$doc" ]] || { echo "commit-feature-doc: no $docs/$doc" >&2; exit 2; }
 done
 [[ -e "$wt" ]] && { echo "commit-feature-doc: $wt already exists" >&2; exit 2; }
 
-git -C "$top" show-ref --verify --quiet "refs/heads/$branch" || git -C "$top" branch "$branch" dev
-git -C "$top" worktree add --quiet "$wt" "$branch"
-trap 'git -C "$top" worktree remove --force "$wt"' EXIT
+if ! git -C "$WF_TOP" show-ref --verify --quiet "refs/heads/$branch"; then
+  git -C "$WF_TOP" fetch -q "$remote" "$base"
+  git -C "$WF_TOP" branch --no-track "$branch" "$remote/$base"
+fi
+git -C "$WF_TOP" worktree add --quiet "$wt" "$branch"
+trap 'git -C "$WF_TOP" worktree remove --force "$wt"' EXIT
 
-mkdir -p "$wt/$rel/$docs"
+dest="$(wf_project_in "$wt")/$docs"
+mkdir -p "$dest"
 paths=()
 for doc in "$@"; do
-  cp "$project/$docs/$doc" "$wt/$rel/$docs/$doc"
-  paths+=("$rel/$docs/$doc")
+  cp "$WF_PROJECT/$docs/$doc" "$dest/$doc"
+  paths+=("$dest/$doc")
 done
 git -C "$wt" add -- "${paths[@]}"
 

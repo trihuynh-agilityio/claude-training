@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # Guard for one task of an approved plan.
 #   check-task.sh <task-id> [plan-path]
-# Run from the task's worktree, inside its expense-tracker/ folder. Compares the work
+# Run from the task's worktree, inside its project folder. Compares the work
 # (committed, uncommitted and untracked) with the task's PR target branch and exits 1,
 # printing every rule that fails. The plan is not inside the worktree while it is
-# untracked, so pass its path; without it the script looks in docs/features/*/plan.md and plan-fix.md.
+# untracked, so pass its path; without it the script looks in <docs_dir>/*/plan.md and plan-fix.md.
+# Limits, remote, docs folder and formatters come from .claude/workflow.json.
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib/config.sh" || exit 2
+docs="$(cfg .docs_dir)"; remote="$(cfg .github.remote)"
+max_lines="$(cfg .task_limits.max_lines)"; max_files="$(cfg .task_limits.max_files)"
 
 task="${1:-}"
 plan="${2:-}"
 [[ -n "$task" ]] || { echo "usage: check-task.sh <task-id> [plan-path]" >&2; exit 2; }
 
 if [[ -z "$plan" ]]; then
-  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md docs/features/*/plan-fix.md 2>/dev/null | head -1)"
+  plan="$(grep -l -E "^## ${task}: " "$docs"/*/plan.md "$docs"/*/plan-fix.md 2>/dev/null | head -1)"
 fi
 [[ -f "$plan" ]] || { echo "check-task: plan not found; pass its path as the second argument" >&2; exit 2; }
 
@@ -31,10 +36,10 @@ acceptance="$(grep -m1 -i '^- Implementer tasks never edit' "$plan" | ticks)"
 [[ "$branch" != *"<"* ]] || { echo "check-task: $task has no sub-issue number in Branch yet ($branch)" >&2; exit 2; }
 
 base_ref=""
-for r in "$base" "github/$base"; do
+for r in "$base" "$remote/$base"; do
   git rev-parse --verify -q "$r^{commit}" >/dev/null && { base_ref="$r"; break; }
 done
-[[ -n "$base_ref" ]] || { echo "check-task: base branch $base not found (locally or as github/$base)" >&2; exit 2; }
+[[ -n "$base_ref" ]] || { echo "check-task: base branch $base not found (locally or as $remote/$base)" >&2; exit 2; }
 
 top="$(git rev-parse --show-toplevel)"
 prefix="$(git rev-parse --show-prefix)"
@@ -47,8 +52,8 @@ mb="$(git merge-base "$base_ref" HEAD)"
 untracked="$(git -C "$top" ls-files --others --exclude-standard)"
 is_record() {
   case "$1" in
-    "$prefix"docs/features/*/evidence/"$task"/result.md | "$prefix"docs/features/*/reviews/"$task".md) return 0 ;;
-    "$prefix"docs/features/*/evidence/"$task"/*) grep -qxF "$1" <<<"$untracked" && return 0 ;;
+    "$prefix$docs"/*/evidence/"$task"/result.md | "$prefix$docs"/*/reviews/"$task".md) return 0 ;;
+    "$prefix$docs"/*/evidence/"$task"/*) grep -qxF "$1" <<<"$untracked" && return 0 ;;
   esac
   return 1
 }
@@ -70,8 +75,8 @@ done <<<"$changed"
 fail=0
 bad() { echo "FAIL: $1" >&2; fail=1; }
 
-((lines >= 300)) && bad "changed lines (added + removed) are $lines; the limit is under 300. Split the work."
-((count >= 10)) && bad "changed files are $count; the limit is under 10. Split the work."
+((lines >= max_lines)) && bad "changed lines (added + removed) are $lines; the limit is under $max_lines. Split the work."
+((count >= max_files)) && bad "changed files are $count; the limit is under $max_files. Split the work."
 
 # Is this the task that writes the acceptance tests? Only if every file it owns is one.
 is_acceptance=0
@@ -100,31 +105,28 @@ done <<<"$changed"
 current="$(git rev-parse --abbrev-ref HEAD)"
 [[ "$current" == "$branch" ]] || bad "branch is $current; the plan says $branch"
 
-# Formatting of the changed files: the same tools as the format-on-edit hook, which may not have run.
-main="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-fe_files=(); py_files=()
-while IFS= read -r f; do
-  [[ -n "$f" && -f "$top/$f" ]] && ! is_record "$f" || continue
-  case "${f#"$prefix"}" in
-    frontend/node_modules/* | frontend/dist/* | backend/.venv/*) ;;
-    frontend/*.ts | frontend/*.tsx | frontend/*.js | frontend/*.jsx | \
-    frontend/*.css | frontend/*.json | frontend/*.html | frontend/*.md) fe_files+=("$top/$f") ;;
-    backend/*.py) py_files+=("$top/$f") ;;
-  esac
-done <<<"$changed"
-if ((${#fe_files[@]})); then
-  prettier="$top/${prefix}frontend/node_modules/.bin/prettier"
-  [[ -x "$prettier" ]] || prettier="$main/frontend/node_modules/.bin/prettier"
-  if [[ ! -x "$prettier" ]]; then
-    bad "cannot check formatting: no prettier (run npm ci in frontend/)"
-  elif ! out="$(cd "$top/${prefix}frontend" && "$prettier" --list-different "${fe_files[@]}" 2>&1)"; then
-    bad "not formatted with Prettier (run npm run format in frontend/): $(tr '\n' ' ' <<<"$out")"
+# Formatting of the changed files, with the "format" rules of workflow.json (the format-on-edit
+# hook may not have run). Each rule's check command runs in that folder of this checkout.
+# Bash 3.2 compatible (macOS): no associative arrays.
+rules="$(jq '.format // [] | length' "$WF_CONFIG")"
+for ((i = 0; i < rules; i++)); do
+  dir="$(cfg ".format[$i].dir")"; check="$(cfg ".format[$i].check")"
+  [[ -n "$check" ]] || continue
+  list=()
+  while IFS= read -r f; do
+    [[ -n "$f" && -f "$top/$f" && "$f" == "$prefix"* ]] && ! is_record "$f" || continue
+    [[ "$(wf_format_rule "${f#"$prefix"}")" == "$i" ]] && list+=("$top/$f")
+  done <<<"$changed"
+  ((${#list[@]})) || continue
+  if ! out="$(cd "$WF_PROJECT/$dir" && bash -c "$check \"\$@\"" check "${list[@]}" 2>&1)"; then
+    # Name the files the tool reported (by absolute path, or relative to its folder).
+    names=""
+    for f in "${list[@]}"; do
+      grep -qF -e "$f" -e "${f#"$top/$prefix$dir/"}" <<<"$out" && names+="${f#"$top/"} "
+    done
+    bad "not formatted ($check in $dir/): ${names:-$(head -3 <<<"$out" | tr '\n' ' ')}"
   fi
-fi
-if ((${#py_files[@]})); then
-  out="$(uv run --quiet --directory "$main/backend" ruff format --check "${py_files[@]}" 2>&1)" ||
-    bad "not formatted with Ruff (run uv run ruff format . in backend/): $(sed -nE 's/^Would reformat: //p; s/^ *--> (.*):[0-9]+:[0-9]+$/\1/p' <<<"$out" | sed "s|^$top/||" | tr '\n' ' ')"
-fi
+done
 
 if ((fail)); then
   echo "check-task $task: FAILED ($lines lines, $count files against $base_ref)" >&2

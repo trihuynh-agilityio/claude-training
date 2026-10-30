@@ -8,24 +8,24 @@
 # in <task-id>/ there. Pushes only that branch, never with force.
 
 set -euo pipefail
+source "$(dirname "$0")/lib/config.sh"
+repo="$(cfg .github.repo)"; remote="$(cfg .github.remote)"; prefix="$(cfg .branches.prefix)"
 
 task="${1:-}"; dir="${2:-}"; base="${3:-}"
 [[ -n "$task" && -d "$dir" && -n "$base" ]] || { echo "usage: publish-evidence.sh <task-id> <evidence-dir> <integration-branch>" >&2; exit 2; }
-[[ "$base" == feat/* ]] || { echo "publish-evidence: integration branch must be feat/*, got $base" >&2; exit 2; }
+[[ "$base" == "$prefix"* ]] || { echo "publish-evidence: integration branch must be $prefix*, got $base" >&2; exit 2; }
 
-repo="trihuynh-agilityio/claude-training"
 branch="$base-evidence"
-top="$(git rev-parse --path-format=absolute --git-common-dir)/.."
-top="$(cd "$top" && pwd)"
-wt="$top/.claude/worktrees/${branch//\//-}"
+top="$WF_TOP"
+wt="$(wf_worktree_path "$branch")"
 
 shopt -s nullglob
 images=("$dir"/*.png "$dir"/*.jpg "$dir"/*.gif)
 ((${#images[@]})) || { echo "publish-evidence: no images in $dir" >&2; exit 1; }
 
 if [[ ! -d "$wt" ]]; then
-  if git -C "$top" ls-remote --exit-code --heads github "$branch" >/dev/null 2>&1; then
-    git -C "$top" fetch -q github "$branch:$branch"
+  if git -C "$top" ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
+    git -C "$top" fetch -q "$remote" "$branch:$branch"
     git -C "$top" worktree add -q "$wt" "$branch"
   else
     git -C "$top" worktree add -q --orphan -b "$branch" "$wt"
@@ -40,7 +40,7 @@ git -C "$wt" add -A "$task"
 if ! git -C "$wt" diff --cached --quiet; then
   git -C "$wt" commit -q -m "$task: UI check screenshots" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 fi
-(cd "$wt" && git push -q -u github "$branch")
+(cd "$wt" && git push -q -u "$remote" "$branch")
 
 sha="$(git -C "$wt" rev-parse HEAD)"
 for f in "$wt/$task"/*; do

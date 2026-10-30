@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # PR gate for one task. Exits 1, printing every problem, unless the task is ready for its pull request.
 #   check-pr-ready.sh <task-id> [plan-path]
-# Run from the task's worktree, inside its expense-tracker/ folder. The plan is not in the worktree
+# Run from the task's worktree, inside its project folder. The plan is not in the worktree
 # while it is untracked, so pass its path.
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib/config.sh" || exit 2
+docs="$(cfg .docs_dir)"; remote="$(cfg .github.remote)"
 
 task="${1:-}"
 plan="${2:-}"
 [[ -n "$task" ]] || { echo "usage: check-pr-ready.sh <task-id> [plan-path]" >&2; exit 2; }
 if [[ -z "$plan" ]]; then
-  plan="$(grep -l -E "^## ${task}: " docs/features/*/plan.md docs/features/*/plan-fix.md 2>/dev/null | head -1)"
+  plan="$(grep -l -E "^## ${task}: " "$docs"/*/plan.md "$docs"/*/plan-fix.md 2>/dev/null | head -1)"
 fi
 [[ -f "$plan" ]] || { echo "check-pr-ready: plan not found; pass its path as the second argument" >&2; exit 2; }
 
@@ -33,8 +36,8 @@ current="$(git rev-parse --abbrev-ref HEAD)"
 [[ "$current" == "$branch" ]] || bad "branch is $current; the plan says $branch"
 # The review report and the UI evidence (result.md included) are never committed; a task branch cut
 # before .gitignore covered them shows them as untracked.
-dirty="$(git status --porcelain --untracked-files=all | grep -vE "^\?\? (.*/)?docs/features/[^/]+/reviews/$task\.md$" |
-  grep -vE "^\?\? (.*/)?docs/features/[^/]+/evidence/$task/" || true)"
+dirty="$(git status --porcelain --untracked-files=all | grep -vE "^\?\? (.*/)?$docs/[^/]+/reviews/$task\.md$" |
+  grep -vE "^\?\? (.*/)?$docs/[^/]+/evidence/$task/" || true)"
 [[ -z "$dirty" ]] || bad "the working tree is not clean (commit or remove: $(head -3 <<<"$dirty" | tr '\n' ' '))"
 
 # 2. The sub-issue exists.
@@ -48,7 +51,7 @@ out="$("$here/check-review.sh" "$task" "$plan" 2>&1)" || bad "check-review.sh fa
 
 # 5. UI check evidence, only for a task that has one.
 if grep -q '^- \*\*UI check\*\*' <<<"$block"; then
-  result="docs/features/$feature/evidence/$task/result.md"
+  result="$docs/$feature/evidence/$task/result.md"
   if [[ ! -f "$result" ]]; then
     bad "the task has a UI check but $result does not exist"
   elif git ls-files --error-unmatch "$result" >/dev/null 2>&1; then
@@ -65,7 +68,7 @@ if grep -q '^- \*\*UI check\*\*' <<<"$block"; then
 fi
 
 # 6. The PR base must exist on GitHub.
-git ls-remote --exit-code --heads github "$base" >/dev/null 2>&1 || bad "base branch $base is not on the github remote; push it first (it is never pushed from here)"
+git ls-remote --exit-code --heads "$remote" "$base" >/dev/null 2>&1 || bad "base branch $base is not on the $remote remote; push it first (it is never pushed from here)"
 
 if ((fail)); then
   echo "check-pr-ready $task: NOT READY" >&2
