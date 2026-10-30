@@ -9,13 +9,13 @@ You run the end-to-end flows of one whole feature and report the result. You nev
 
 ## Input
 
-The feature name, the project root (the `expense-tracker/` folder that contains `docs/features/`), the verification worktree path (the `expense-tracker/` folder inside it), the evidence folder (absolute, under `<project root>/docs/features/<feature>/evidence/verify/`), and a list of flows. Each flow has an id, the requirement ids it proves (for example R1, R4), its setup and its steps with the expected result.
+The feature name, the project root (the folder that holds `.claude/workflow.json` and the docs folder), the verification project folder (the project folder inside the verification worktree, `PROJECT=` of `verify-worktree.sh`), the evidence folder (absolute, under `<project root>/<docs_dir>/<feature>/evidence/verify/`), and a list of flows. Each flow has an id, the requirement ids it proves (for example R1, R4), its setup and its steps with the expected result.
 
-You use lane A only: browser tools `mcp__playwright-a__*`, frontend port 5181, backend port 8081.
+You use lane A only: browser tools `mcp__playwright-a__*` and the ports of `lanes.A` in `.claude/workflow.json`.
 
 ## Steps
 
-1. **Start the servers**: `<project root>/.claude/scripts/dev-servers.sh start A <verification worktree>`. It uses a fresh temp database. Use `http://localhost:5181/` wherever a flow says `http://localhost:5173/`. If it fails, the result is BLOCKED. **Always run `dev-servers.sh stop A` before you finish, even after a failure.**
+1. **Start the servers**: `<project root>/.claude/scripts/dev-servers.sh start A <verification project folder>`. It uses a fresh state folder and prints `APP_URL=`. Use that URL wherever a flow says the `dev_url` of `workflow.json`. If it fails, the result is BLOCKED. **Always run `dev-servers.sh stop A` before you finish, even after a failure.**
 2. **Run each flow exactly as written**, in order, including its setup. Do the actions with the Playwright tools and compare what is visible with the expected result. Prefer accessibility snapshots for the check, screenshots for evidence. Use a 375px-wide window for a flow that says so, then reset the size.
 3. **Capture evidence** in the evidence folder (create it): one screenshot per flow step that matters, `NN-flow-short-name.png`; one trace (`browser_start_tracing`, `browser_stop_tracing`, saved as `trace.zip`) over the whole run, or a screenshot per step if tracing fails (say so); `console.log` with every console error and warning and every failed network request; `e2e-result.md` with one line per flow (id, requirement ids, PASS or FAIL, observed against expected, any console or network error), then the date and time and the worktree's branch and commit. It must also contain two lines of exactly this form: `Overall: PASS` (or `FAIL` or `BLOCKED`) and `Commit: <full hash of the worktree HEAD>`.
 4. **Clean up**: `browser_close`, then stop the servers.

@@ -3,7 +3,7 @@ name: review-task
 description: Phase 3 (Build) local review loop for ONE task, after the implementer and before the UI check or PR. Reviews the task's commits, has the implementer fix blocker and major findings, and writes the review report. Run with the feature folder name and the task id.
 model: opus
 disable-model-invocation: true
-allowed-tools: Read Write Edit Glob Grep Agent Bash(git diff*) Bash(git log*) Bash(git rev-parse *) Bash(git status*) Bash(git add *) Bash(git commit *) Bash(npm test*) Bash(npm run lint*) Bash(npm run build*) Bash(*/.claude/scripts/check-task.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/check-review.sh *)
+allowed-tools: Read Write Edit Glob Grep Agent Bash(git diff*) Bash(git log*) Bash(git rev-parse *) Bash(git status*) Bash(git add *) Bash(git commit *) Bash(*/.claude/scripts/check-task.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/check-review.sh *)
 ---
 
 # Review one task
@@ -14,9 +14,10 @@ Arguments: `<feature-name> <task-id>`, for example `over-budget-alerts T4`.
 
 ## Paths
 
-- Project root: the folder that contains `docs/features/` (the `expense-tracker/` folder). Plan: `<project root>/docs/features/<feature-name>/plan.md`, or `plan-fix.md` next to it when the task id is defined there (a fix task added by `verify-feature`); that file is the plan path below. Scripts: `<project root>/.claude/scripts/`.
+- Settings: `<project root>/.claude/workflow.json` (`docs_dir`, `github.remote` as `<remote>`, `branches.base` as `<base>`). The **project folder** of a worktree is the worktree root plus the project's path inside the repository (`git -C <project root> rev-parse --show-prefix`; empty at the root).
+- Project root: the folder that holds `.claude/workflow.json` and `<docs_dir>`. Plan: `<project root>/<docs_dir>/<feature-name>/plan.md`, or `plan-fix.md` next to it when the task id is defined there (a fix task added by `verify-feature`); that file is the plan path below. Scripts: `<project root>/.claude/scripts/`.
 - Read the task's block in the plan. Its `Branch:` gives the worktree: `<repo root>/.claude/worktrees/<branch with / replaced by ->`. Its `PR target:` is the integration branch.
-- In the worktree, work from its `expense-tracker/` folder. The report is `docs/features/<feature-name>/reviews/<task-id>.md` there.
+- In the worktree, work from its project folder. The report is `<docs_dir>/<feature-name>/reviews/<task-id>.md` there.
 
 ## 1. Preconditions
 

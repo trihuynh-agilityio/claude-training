@@ -11,9 +11,9 @@ A plan turns an approved spec into small tasks grouped in waves that the build p
 
 ## 1. Collect the inputs
 
-- **Intent and spec**: the `intent.md` and `spec.md` the plan answers. Take them from the request (a feature folder name such as `over-budget-alerts` means `docs/features/<feature-name>/`). If the request names none, run `ls docs/features/` and ask which folder. If the folder has no `spec.md`, stop and offer to run `write-spec` first.
-- **Project guidance**: read `CLAUDE.md` and any design spec it points to, for the stack, rules and commands. The tasks need two things from it: the **test command** (and how to run one file or test) and the **dev server command and URL**. If either is missing, stop and ask the user. Do not guess. The plan never copies the workflow rules or the repo name: those live in `CLAUDE.md`, the skills and `github-ops`. If any task will have a UI check, the plan also needs the fixed dev-server ports of lane A and lane B (frontend and backend each) and how to set them; if `CLAUDE.md` does not say, stop and ask the user.
-- **Feature issue number**: call the `github-ops` agent with `find-issue docs/features/<feature-name>/intent.md` and take the number from its report. The number names the integration branch only; it is never written into the intent or the spec. If it reports `not found`, stop and tell the user to finish Phase 1 (`/plan-feature`).
+- **Intent and spec**: the `intent.md` and `spec.md` the plan answers. Take them from the request (a feature folder name such as `over-budget-alerts` means `<docs_dir>/<feature-name>/`). If the request names none, run `ls <docs_dir>/` and ask which folder. If the folder has no `spec.md`, stop and offer to run `write-spec` first.
+- **Project guidance**: read `CLAUDE.md` and any design spec it points to, for the stack, rules and commands. Read `.claude/workflow.json` for the workflow settings: `commands` (test, lint, build), `task_limits`, `naming`, `lanes` and `app_url` (the UI check URL of each lane). The tasks also need how to run one test file or test, from `CLAUDE.md` or the test command; if that is missing, stop and ask the user. Do not guess. The plan never copies the workflow rules, the settings or the repo name: those live in `workflow.json`, the skills and `github-ops`.
+- **Feature issue number**: call the `github-ops` agent with `find-issue <docs_dir>/<feature-name>/intent.md` and take the number from its report. The number names the integration branch only; it is never written into the intent or the spec. If it reports `not found`, stop and tell the user to finish Phase 1 (`/plan-feature`).
 - **The code**: use Glob and Grep to find the real files, routes, components and helpers the spec touches. Name only files you found, or new files marked as new. Never guess a path.
 
 Read both documents whole before writing. If the spec's status is still `draft`, tell the user and carry on only if they say so. Requirements are the spec's `R1.`, `R2.` ids; they stand in for acceptance criteria everywhere below.
@@ -21,7 +21,7 @@ Read both documents whole before writing. If the spec's status is still `draft`,
 ## 2. Name and place the file
 
 ```
-docs/features/<feature-name>/plan.md
+<docs_dir>/<feature-name>/plan.md
 ```
 
 - It sits in the same folder as the intent and spec.
@@ -70,7 +70,7 @@ From: [intent.md](intent.md) and [spec.md](spec.md).
 
 ### Task size (hard rule)
 
-- One task is one PR with fewer than 300 changed lines (added and removed, tests included) and fewer than 10 files. Split a task before writing the plan if it would exceed either limit.
+- One task is one PR with fewer than `task_limits.max_lines` changed lines (added and removed, tests included) and fewer than `task_limits.max_files` files. Split a task before writing the plan if it would exceed either limit.
 - If the plan needs more than about 10 tasks, stop and tell the user the feature may be too big and should be split. Do not write a huge plan.
 
 ### Task fields
@@ -84,13 +84,13 @@ Every task has, in this order:
 - **Covers**: the requirement ids (`R1`, `R2`).
 - **Depends on**: task ids from earlier waves only, or `none`.
 - **Tests**: test files and key cases, including the spec's boundary values.
-- **Verify**: the exact command that runs only this task's tests, built from the test command in `CLAUDE.md`.
+- **Verify**: the exact command that runs only this task's tests, built from `commands.test` in `.claude/workflow.json` (and how to run one file, from `CLAUDE.md`).
 - **Done when**: concrete, checkable criteria.
 - **Slug**: `<task-slug>`: lowercase kebab-case, ASCII, 2 to 5 words, unique within the feature (different from every other task slug and from the feature slug).
 - **Issue**: `pending`. Sub-issues are created after the plan is approved, so the number does not exist yet. Never guess or reserve one.
-- **Branch**: the Task branch pattern from the `## Naming` table in `CLAUDE.md`, in backticks, with `<sub-issue>` written in place of the task issue number until the sub-issue exists (default `` `feat/<sub-issue>-<task-slug>` ``).
-- **PR target**: the Integration branch pattern from `## Naming`, with the real feature issue number (default `feat/<feature-issue-number>-<feature-slug>`).
-- **PR title**: the Task PR title pattern from `## Naming`, with the same `<sub-issue>` placeholder (default `<title> (#<sub-issue>)`). The `T<n>` id never goes into it.
+- **Branch**: `naming.task_branch` from `.claude/workflow.json`, in backticks, with the task slug for `{task_slug}` and `<sub-issue>` for `{task_issue}` until the sub-issue exists.
+- **PR target**: `naming.integration_branch`, with the real feature issue number and the feature slug.
+- **PR title**: `naming.task_pr_title`, with the task title and the same `<sub-issue>` placeholder. The `T<n>` id never goes into it.
 - **UI check**: only for tasks that change user-facing UI (see below).
 
 ### Testing
@@ -102,12 +102,12 @@ Every task has, in this order:
 
 ### UI check (UI tasks only)
 
-- **Route/URL**: the frontend URL of the task's lane (from the lane ports in `CLAUDE.md`) plus the path.
+- **Route/URL**: the lane's `app_url` from `.claude/workflow.json` (filled with that lane's ports) plus the path.
 - **Scenarios**: each is the user's actions and the expected visible result.
 - Every scenario must be reproducible as written: name the exact setup and data. For a failure, slow or offline state, say how to cause it in the browser (for example a console override of `fetch` that never answers for one URL), never a step like "stop the server and bring it back".
 - **Evidence**: a screenshot per scenario, a trace or video for multi-step flows, and the browser console log with failed requests.
-- UI checks run with Playwright MCP inside the task's own lane, right after the implementer and before the task's PR is created. Each lane has its own browser and its own fixed dev-server ports, set in `CLAUDE.md`.
-- Evidence goes in `docs/features/<feature-name>/evidence/<task-id>/` with a `result.md` (each scenario pass or fail, observed against expected, errors, branch and commit). Nothing in the evidence folder is committed. The content of `result.md` and the screenshots (published by `publish-evidence.sh`) go into the PR description.
+- UI checks run with Playwright MCP inside the task's own lane, right after the implementer and before the task's PR is created. Each lane has its own browser and its own dev-server ports, set in `lanes` of `workflow.json`.
+- Evidence goes in `<docs_dir>/<feature-name>/evidence/<task-id>/` with a `result.md` (each scenario pass or fail, observed against expected, errors, branch and commit). Nothing in the evidence folder is committed. The content of `result.md` and the screenshots (published by `publish-evidence.sh`) go into the PR description.
 
 If the task has no UI change, leave the UI check out.
 
@@ -118,7 +118,7 @@ If the task has no UI change, leave the UI check out.
 - **Checks**: fill the four parts:
   - `### AC coverage`: every requirement id, with the task ids that cover it. No requirement is left uncovered.
   - `### Parallel safety`: for each wave, the files touched by each lane, confirming no overlap.
-  - `### Size`: every task with its estimated lines and files, confirming each is under 300 lines and 10 files.
+  - `### Size`: every task with its estimated lines and files, confirming each is under the `task_limits`.
   - `### Test plan`: a table `Requirement | Acceptance test file | Task that writes it | Tasks that make it pass`.
 
 ## 6. Rules

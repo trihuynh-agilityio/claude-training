@@ -14,7 +14,7 @@ Invoke the `grill-me` skill (the `grilling` skill of the `mattpocock-skills` plu
 
 ## 2. Write the intent
 
-Invoke `write-intent` with this override: write to `docs/features/<feature-name>/intent.md` (kebab-case name, 2–5 words, no date prefix), not to `intent/`. Everything else in that skill applies. Team and author follow its rules.
+Invoke `write-intent` with this override: write to `<docs_dir>/<feature-name>/intent.md` (kebab-case name, 2–5 words, no date prefix), not to `intent/`. Everything else in that skill applies. Team and author follow its rules.
 
 ## 3. Get approval
 
@@ -27,13 +27,13 @@ The issue tracks the feature as a TODO. `intent.md` is the source of truth, so t
 Hand this step to the `github-ops` agent (`.claude/agents/github-ops.md`), which owns the repo, title, body and label. Do not rebuild them here.
 
 - The approval in step 3 covers this step: create the issue without asking again.
-- Call the Agent tool with `subagent_type: "github-ops"` and the prompt `create-issue docs/features/<feature-name>/intent.md`.
+- Call the Agent tool with `subagent_type: "github-ops"` and the prompt `create-issue <docs_dir>/<feature-name>/intent.md`.
 - The issue leaves Phase 1 labeled `feature` and `phase:plan-done`; Phase 2 starts from that label.
 - Take the issue URL from its report. If it reports the intent is not approved or the create failed, tell the user and stop.
 
 ## 5. Commit the intent to the feature branch
 
-The approved intent lands on the feature's integration branch `feat/<issue-number>-<feature-name>`, the same branch `write-plan` names as every task's `PR target:`. Run `.claude/scripts/commit-feature-doc.sh <feature-name> <issue-number> intent.md`. It creates the branch from `dev` if missing and commits through a temporary worktree, so the current checkout and its branch stay untouched. Keep its `BRANCH=` and `COMMIT=` lines for the report.
+The approved intent lands on the feature's integration branch (`naming.integration_branch` in `.claude/workflow.json`), the same branch `write-plan` names as every task's `PR target:`. Run `.claude/scripts/commit-feature-doc.sh <feature-name> <issue-number> intent.md`. It creates the branch from the freshly fetched base branch (`branches.base`) if missing and commits through a temporary worktree, so the current checkout and its branch stay untouched. Keep its `BRANCH=` and `COMMIT=` lines for the report.
 
 It never pushes: `build-feature` pushes the integration branch once, before the first task PR. If it fails, tell the user and continue to step 6.
 

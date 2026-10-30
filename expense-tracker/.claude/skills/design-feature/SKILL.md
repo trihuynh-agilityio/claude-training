@@ -9,15 +9,15 @@ allowed-tools: Skill Read Glob Grep Write Edit AskUserQuestion Agent
 
 Phase 2 of the feature workflow: approved intent, then an approved spec, then the issue updated. It chains existing skills and agents and adds no task breakdown and no code. Stop after the hand-off.
 
-Argument: `<feature-name>`, the folder under `docs/features/`.
+Argument: `<feature-name>`, the folder under `<docs_dir>`.
 
 ## 1. Check the input
 
-Read `docs/features/<feature-name>/intent.md`. If line 2 does not say `Status: approved.`, stop and tell the user to finish Phase 1 (`/plan-feature`). Never edit the intent.
+Read `<docs_dir>/<feature-name>/intent.md`. If line 2 does not say `Status: approved.`, stop and tell the user to finish Phase 1 (`/plan-feature`). Never edit the intent.
 
-Call the `github-ops` agent with `find-issue docs/features/<feature-name>/intent.md`. If it reports `not found`, stop and tell the user: the tracking issue is missing, so Phase 1 is not finished. Do not create one here.
+Call the `github-ops` agent with `find-issue <docs_dir>/<feature-name>/intent.md`. If it reports `not found`, stop and tell the user: the tracking issue is missing, so Phase 1 is not finished. Do not create one here.
 
-If `docs/features/<feature-name>/spec.md` exists, ask with `AskUserQuestion`: revise it or start over. Never overwrite it without that answer.
+If `<docs_dir>/<feature-name>/spec.md` exists, ask with `AskUserQuestion`: revise it or start over. Never overwrite it without that answer.
 
 ## 2. Core standards
 
@@ -29,7 +29,7 @@ Read the standards files it returned, only the sections it named. Delegate scann
 
 ## 4. Write the spec
 
-Invoke `write-spec` with this override: write to `docs/features/<feature-name>/spec.md`, not to `intent/`. Everything else in that skill applies.
+Invoke `write-spec` with this override: write to `<docs_dir>/<feature-name>/spec.md`, not to `intent/`. Everything else in that skill applies.
 
 ## 5. Self-review
 

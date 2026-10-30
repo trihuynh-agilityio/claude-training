@@ -10,7 +10,7 @@ Given an intent, report which core standards the feature needs and where this pr
 
 ## Input
 
-The path of an intent file (for example `docs/features/<name>/intent.md`). If none is given, ask for it.
+The path of an intent file (for example `<docs_dir>/<name>/intent.md`). If none is given, ask for it.
 
 ## 1. Decide which standards apply
 
