@@ -1,6 +1,7 @@
 ---
 name: write-intent
 description: Use when asked to write, draft or start an intent document for a change, before any design or code exists.
+model: sonnet
 allowed-tools: Bash(git config *) Bash(date *) Bash(ls *) Bash(mkdir *) Read Write Glob
 ---
 

@@ -8,5 +8,14 @@ __pycache__/
 .env
 .env.*
 
+# Workflow runtime state and hook log
+.claude/workflow/
+
+# Task review reports stay local
+docs/features/*/reviews/
+
+# UI-check evidence stays local; its result and screenshots go into the PR description
+docs/features/*/evidence/
+
 # OS
 .DS_Store
