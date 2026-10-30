@@ -4,6 +4,8 @@
 
 command -v osascript >/dev/null 2>&1 || exit 0
 
-osascript -e 'display notification "Claude finished responding" with title "expense-tracker" sound name "Glass"' >/dev/null 2>&1
+# The title is the project folder's name.
+title="$(basename "${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}")"
+osascript -e "display notification \"Claude finished responding\" with title \"${title//\"/}\" sound name \"Glass\"" >/dev/null 2>&1
 
 exit 0

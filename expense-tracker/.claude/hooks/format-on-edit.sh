@@ -1,44 +1,33 @@
 #!/usr/bin/env bash
-# PostToolUse hook: format the file Claude just wrote or edited.
-# Ruff for backend Python, Prettier for frontend files. Never blocks the edit.
-# Works in this checkout and in task worktrees (<repo root>/.claude/worktrees/<name>/expense-tracker/,
-# or the same under this project's .claude/worktrees/), where the implementer edits.
+# PostToolUse hook: format the file Claude just wrote or edited, with the "format" rules of
+# .claude/workflow.json. Never blocks the edit.
+# Works in this checkout and in task worktrees (<repo root>/.claude/worktrees/<name>/<project path>/,
+# or the same under this project's .claude/worktrees/), where the implementer edits. Each rule's
+# write command runs in that folder of THIS checkout, with the file's absolute path appended, so a
+# worktree without installed tools is still formatted (the tools read the config nearest the file).
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TOP="$(dirname "$ROOT")"
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/lib/config.sh" 2>/dev/null || exit 0
 
 file="$(jq -r '.tool_input.file_path // empty')"
 [[ -n "$file" && -f "$file" ]] || exit 0
 
-# The expense-tracker/ folder the file belongs to.
+# The project folder the file belongs to.
 case "$file" in
-  "$ROOT"/.claude/worktrees/*/expense-tracker/* | "$TOP"/.claude/worktrees/*/expense-tracker/*)
+  "$WF_PROJECT"/.claude/worktrees/* | "$WF_TOP"/.claude/worktrees/*)
     base="${file%%/.claude/worktrees/*}"
     rest="${file#"$base"/.claude/worktrees/}"
-    proj="$base/.claude/worktrees/${rest%%/*}/expense-tracker"
+    proj="$(wf_project_in "$base/.claude/worktrees/${rest%%/*}")"
     ;;
-  "$ROOT"/.claude/*) exit 0 ;;
-  "$ROOT"/*) proj="$ROOT" ;;
+  "$WF_PROJECT"/.claude/*) exit 0 ;;
+  "$WF_PROJECT"/*) proj="$WF_PROJECT" ;;
   *) exit 0 ;;
 esac
+[[ "$file" == "$proj"/* ]] || exit 0
 
-case "${file#"$proj"/}" in
-  backend/.venv/*) ;;
-  backend/*.py)
-    # Ruff reads the pyproject.toml nearest the file, so the main checkout's ruff is fine for a worktree.
-    uv run --quiet --directory "$ROOT/backend" ruff format "$file" >&2 \
-      || echo "format-on-edit: ruff failed on $file" >&2
-    ;;
-  frontend/node_modules/* | frontend/dist/*) ;;
-  frontend/*.ts | frontend/*.tsx | frontend/*.js | frontend/*.jsx | \
-  frontend/*.css | frontend/*.json | frontend/*.html | frontend/*.md)
-    prettier="$proj/frontend/node_modules/.bin/prettier"
-    [[ -x "$prettier" ]] || prettier="$ROOT/frontend/node_modules/.bin/prettier"
-    [[ -x "$prettier" ]] || exit 0
-    # From the project's frontend/, so its .prettierrc.json and .prettierignore apply.
-    (cd "$proj/frontend" && "$prettier" --write --log-level warn "$file" >&2) \
-      || echo "format-on-edit: prettier failed on $file" >&2
-    ;;
-esac
+i="$(wf_format_rule "${file#"$proj"/}")" || exit 0
+dir="$(cfg ".format[$i].dir")"; write="$(cfg ".format[$i].write")"
+[[ -n "$write" ]] || exit 0
+(cd "$WF_PROJECT/${dir:-.}" && bash -c "$write \"\$1\"" write "$file" >&2) \
+  || echo "format-on-edit: '$write' failed on $file" >&2
 
 exit 0

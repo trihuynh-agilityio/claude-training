@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# PreToolUse hook (Bash): block commands that break project rules or are destructive.
+# PreToolUse hook (Bash): block commands that are destructive or break project rules.
 # Exit 2 blocks the call and sends the message on stderr back to Claude.
+# The generic rules live here; the project's own rules are "blocked_commands" in .claude/workflow.json
+# (each an extended regex "pattern" and a "message"), and the protected branches come from
+# "branches.protected".
 
 command="$(jq -r '.tool_input.command // empty')"
 [[ -n "$command" ]] || exit 0
@@ -12,22 +15,24 @@ block() {
 
 matches() { grep -Eq -- "$1" <<<"$command"; }
 
-# Project rules (see CLAUDE.md)
-matches '(^|[;&|[:space:]])(pip3?|python3? -m pip)[[:space:]]+(install|uninstall)' \
-  && block "use 'uv add' / 'uv run', never pip."
-matches '(source|\.)[[:space:]]+[^;&|]*\.venv/bin/activate' \
-  && block "use 'uv run', do not activate the venv manually."
-matches '(npx|npm exec)[[:space:]]+(--[a-z-]+[[:space:]]+)*eslint' \
-  && block "this project lints with oxlint ('npm run lint'), not ESLint."
+# Project rules from workflow.json. Without the config only the generic rules below apply.
+if source "$(dirname "${BASH_SOURCE[0]}")/../scripts/lib/config.sh" 2>/dev/null; then
+  while IFS=$'\t' read -r pattern message; do
+    [[ -n "$pattern" ]] && matches "$pattern" && block "$message"
+  done < <(jq -r '.blocked_commands // [] | .[] | "\(.pattern)\t\(.message)"' "$WF_CONFIG")
+  protected="$(cfg '.branches.protected | join("|")')"
+fi
+protected="${protected:-main}"
 
-# Git: never push/merge into main, never force-push
+# Git: never force-push, never push to or merge on a protected branch
 matches 'git[[:space:]]+push([[:space:]]+[^;&|]*)?[[:space:]](--force|--force-with-lease|-f)([[:space:]]|$)' \
   && block "force push is not allowed."
-matches 'git[[:space:]]+push([[:space:]]+[^;&|]*)?[[:space:]:](HEAD:)?(refs/heads/)?main([[:space:]]|$)' \
-  && block "never push to main; use dayNN/<topic> branches and merge into dev."
+matches "git[[:space:]]+push([[:space:]]+[^;&|]*)?[[:space:]:](HEAD:)?(refs/heads/)?($protected)([[:space:]]|\$)" \
+  && block "never push to a protected branch ($protected)."
 if matches 'git[[:space:]]+(push|merge)([[:space:]]|$)'; then
-  [[ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" == "main" ]] \
-    && block "currently on main; never merge or push on main."
+  current="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+  [[ -n "$current" ]] && grep -Eqx -- "$protected" <<<"$current" \
+    && block "currently on $current; never merge or push on a protected branch."
 fi
 
 # Destructive operations
@@ -37,7 +42,5 @@ matches 'git[[:space:]]+reset[[:space:]]+[^;&|]*--hard' \
   && block "git reset --hard discards work; ask the user first."
 matches 'git[[:space:]]+clean[[:space:]]+[^;&|]*-[a-zA-Z]*f' \
   && block "git clean -f deletes untracked files; ask the user first."
-matches '(rm|mv|truncate|>)[^;&|]*expenses\.db' \
-  && block "do not delete or overwrite the SQLite database (backend/data/expenses.db)."
 
 exit 0

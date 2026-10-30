@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # PreToolUse hook (Bash): a second layer behind the deny rules in settings.json.
-# Blocks `git push` unless every destination ref matches feat/*. Exit 2 blocks the call.
+# Blocks `git push` unless every destination ref starts with branches.prefix from .claude/workflow.json
+# (feat/ when the config is missing). Exit 2 blocks the call.
 
 input="$(cat)"
 command="$(jq -r '.tool_input.command // empty' <<<"$input")"
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 [[ -n "$command" ]] || exit 0
+
+prefix=""
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/lib/config.sh" 2>/dev/null && prefix="$(cfg .branches.prefix)"
+prefix="${prefix:-feat/}"
 
 block() {
   echo "Blocked: $1" >&2
@@ -27,7 +32,7 @@ current_branch() {
 positional=()
 for tok in $args; do
   case "$tok" in
-    --all | --mirror) block "git push $tok pushes branches other than feat/*; push one feat/* branch by name." ;;
+    --all | --mirror) block "git push $tok pushes branches other than $prefix*; push one $prefix* branch by name." ;;
     -*) ;;
     *) positional+=("$tok") ;;
   esac
@@ -44,7 +49,7 @@ for spec in "${refspecs[@]}"; do
   dest="${dest##*:}"
   dest="${dest#refs/heads/}"
   [[ "$dest" == "HEAD" ]] && dest="$(current_branch)"
-  [[ "$dest" == feat/* ]] || block "git push may only target feat/* branches (got '${dest:-empty}'). Never push dev, main or other branches."
+  [[ "$dest" == "$prefix"* ]] || block "git push may only target $prefix* branches (got '${dest:-empty}'). Never push the base, main or other branches."
 done
 
 exit 0
