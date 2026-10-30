@@ -37,7 +37,7 @@ From here on, whatever happens (a stop, an error, FAIL), run `verify-worktree.sh
 
 ## 3. Mechanical checks (Haiku)
 
-Launch one `Agent` (`model: haiku`) whose only job is to run `verify-checks.sh <WORKTREE>/expense-tracker <evidence>/ <acceptance files…>` and return `<evidence>/checks.tsv` plus a one-line summary per failed step (read the tail of its log). The acceptance files are the unique "Acceptance test file" column of the plan's Test plan, as paths relative to `frontend/`. The agent runs nothing else and edits nothing. The steps run in order and one at a time: install, build (type check + bundle), lint, frontend suite, backend suite, acceptance tests. Logs and `acceptance.json` stay in `<evidence>/`.
+Launch one `Agent` (`model: haiku`) whose only job is to run `verify-checks.sh <WORKTREE>/expense-tracker <evidence>/ <acceptance files…>` and return `<evidence>/checks.tsv` plus a one-line summary per failed step (read the tail of its log). The acceptance files are the unique "Acceptance test file" column of the plan's Test plan, as paths relative to `frontend/`. The agent runs nothing else and edits nothing. The steps run in order and one at a time: install, build (type check + bundle), lint, format (Prettier and Ruff `--check`), frontend suite, backend suite, acceptance tests. Logs and `acceptance.json` stay in `<evidence>/`.
 
 ## 4. Feature E2E (Sonnet)
 

@@ -100,6 +100,32 @@ done <<<"$changed"
 current="$(git rev-parse --abbrev-ref HEAD)"
 [[ "$current" == "$branch" ]] || bad "branch is $current; the plan says $branch"
 
+# Formatting of the changed files: the same tools as the format-on-edit hook, which may not have run.
+main="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+fe_files=(); py_files=()
+while IFS= read -r f; do
+  [[ -n "$f" && -f "$top/$f" ]] && ! is_record "$f" || continue
+  case "${f#"$prefix"}" in
+    frontend/node_modules/* | frontend/dist/* | backend/.venv/*) ;;
+    frontend/*.ts | frontend/*.tsx | frontend/*.js | frontend/*.jsx | \
+    frontend/*.css | frontend/*.json | frontend/*.html | frontend/*.md) fe_files+=("$top/$f") ;;
+    backend/*.py) py_files+=("$top/$f") ;;
+  esac
+done <<<"$changed"
+if ((${#fe_files[@]})); then
+  prettier="$top/${prefix}frontend/node_modules/.bin/prettier"
+  [[ -x "$prettier" ]] || prettier="$main/frontend/node_modules/.bin/prettier"
+  if [[ ! -x "$prettier" ]]; then
+    bad "cannot check formatting: no prettier (run npm ci in frontend/)"
+  elif ! out="$(cd "$top/${prefix}frontend" && "$prettier" --list-different "${fe_files[@]}" 2>&1)"; then
+    bad "not formatted with Prettier (run npm run format in frontend/): $(tr '\n' ' ' <<<"$out")"
+  fi
+fi
+if ((${#py_files[@]})); then
+  out="$(uv run --quiet --directory "$main/backend" ruff format --check "${py_files[@]}" 2>&1)" ||
+    bad "not formatted with Ruff (run uv run ruff format . in backend/): $(sed -nE 's/^Would reformat: //p; s/^ *--> (.*):[0-9]+:[0-9]+$/\1/p' <<<"$out" | sed "s|^$top/||" | tr '\n' ' ')"
+fi
+
 if ((fail)); then
   echo "check-task $task: FAILED ($lines lines, $count files against $base_ref)" >&2
   exit 1

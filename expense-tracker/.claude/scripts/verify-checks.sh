@@ -29,6 +29,8 @@ run install-frontend "$fe" npm ci --prefer-offline
 run install-backend "$be" uv sync
 run build "$fe" npm run build          # tsc -b (type check, test files included), then vite build
 run lint "$fe" npm run lint
+run format-frontend "$fe" npx --no-install prettier --check .
+run format-backend "$be" uv run ruff format --check .
 run unit-frontend "$fe" npm test
 run unit-backend "$be" uv run pytest
 run acceptance "$fe" npm test -- --reporter=json --outputFile="$logs/acceptance.json" "$@"
