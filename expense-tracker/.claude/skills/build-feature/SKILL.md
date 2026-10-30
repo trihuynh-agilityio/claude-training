@@ -2,7 +2,7 @@
 name: build-feature
 description: Phase 3 (Build) orchestrator, started by the Stop hook right after create-task-issues, or run by hand to resume. Use it only for a feature whose plan is approved and has sub-issues. Runs an approved, issue-linked plan wave by wave (one pipeline per task, two lanes in parallel), waits for the user to merge each wave's PRs and then starts the next wave on its own, and finally opens the PR to the base branch. Run with the feature folder name. Re-run it any time; it resumes from GitHub state.
 model: opus
-allowed-tools: Read Write Edit Glob Grep Agent CronCreate CronList CronDelete Bash(git status*) Bash(git log*) Bash(git branch*) Bash(git rev-parse *) Bash(git worktree *) Bash(git ls-remote *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/code-head.sh*)
+allowed-tools: Read Write Edit Glob Grep Agent CronCreate CronList CronDelete Bash(git status*) Bash(git log*) Bash(git branch*) Bash(git rev-parse *) Bash(git worktree *) Bash(git ls-remote *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/cleanup-feature.sh *) Bash(*/.claude/scripts/code-head.sh*)
 ---
 
 # Build a feature
@@ -14,7 +14,7 @@ Argument: `<feature-name>`, the folder under `<docs_dir>`.
 ## Paths
 
 - Settings: `<project root>/.claude/workflow.json`. Below, `<docs_dir>` is its `docs_dir`, `<remote>` is `github.remote`, `<base>` is `branches.base`, and the commands are its `commands` (each runs in its `dir`). The **project folder** of a worktree is the worktree root plus the project's path inside the repository (`git -C <project root> rev-parse --show-prefix`; empty when the project is the repository root).
-- Project root: the folder that holds `.claude/workflow.json` and `<docs_dir>`. Plan: `<project root>/<docs_dir>/<feature-name>/plan.md`. Fix tasks: `plan-fix.md` next to it, written by `verify-feature` after a FAIL (its tasks already have issues). A task's **plan path** is always the absolute path of the `plan=` file `build-position.sh` prints for it, so a fix task gets `plan-fix.md` everywhere (lane, implementer, reviewer, UI verifier, gates). Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/state.json`.
+- Project root: the folder that holds `.claude/workflow.json` and `<docs_dir>`. Plan: `<project root>/<docs_dir>/<feature-name>/plan.md`. Fix tasks: `plan-fix.md` next to it, written by `verify-feature` after a FAIL (its tasks already have issues). A task's **plan path** is always the absolute path of the `plan=` file `build-position.sh` prints for it, so a fix task gets `plan-fix.md` everywhere (lane, implementer, reviewer, UI verifier, gates). Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/<feature-name>/state.json`.
 - Integration branch: the `PR target:` of the tasks (named by `naming.integration_branch`). Repo root worktrees: `<repo root>/.claude/worktrees/`.
 
 ## 1. Preconditions
@@ -22,6 +22,7 @@ Argument: `<feature-name>`, the folder under `<docs_dir>`.
 Stop and tell the user what to do if any fails:
 
 - plan.md line 2 is `Status: approved.` and no task has `Issue: pending`; otherwise: run `create-task-issues <feature-name>`.
+- No other feature is building: every other `<project root>/.claude/workflow/*/state.json` with phase `build` has a status other than `in_progress`. The lanes share their ports and Playwright browsers, so only one feature runs lanes at a time; a feature in `waiting_review` does not count. Otherwise name that feature and stop.
 - The integration branch exists. If not, create it from the freshly fetched base, never from a stale local copy or `main`: `git fetch <remote> <base>`, then `git branch --no-track <name> <remote>/<base>`. If it is not on `<remote>` (`git ls-remote --exit-code --heads <remote> <name>`), push it once with `git push -u <remote> <name>`: this is the only push besides task branches, and `create-task-pr` needs the base on GitHub.
 - Bring it up to date locally with a fast-forward fetch, no merge: `git fetch <remote> <name>:<name>`. If that is refused because it is not a fast-forward, stop and report; never force.
 
@@ -29,14 +30,14 @@ Then write the state file (see "State").
 
 ## 2. Position
 
-1. Call `github-ops` `get-pr-state` with the `Branch:` of every task. Write its rows to `<project root>/.claude/workflow/pr-states.tsv` as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]`. If the integration task has no PR but its check passed (state `tasks.<id>.status` is `done`, see step 5), add the line `CHECK <task-id> PASS`.
-2. Run `build-position.sh <plan path> .claude/workflow/pr-states.tsv`. The integration task is the one it prints with `integration=yes` (its `Branch:` says "only if fixes are needed"); never assume its id. Its `ACTION` is the next step:
+1. Call `github-ops` `get-pr-state` with the `Branch:` of every task. Write its rows to `<project root>/.claude/workflow/<feature-name>/pr-states.tsv` as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr-number]`. If the integration task has no PR but its check passed (state `tasks.<id>.status` is `done`, see step 5), add the line `CHECK <task-id> PASS`.
+2. Run `build-position.sh <plan path> .claude/workflow/<feature-name>/pr-states.tsv`. The integration task is the one it prints with `integration=yes` (its `Branch:` says "only if fixes are needed"); never assume its id. Its `ACTION` is the next step:
    - `blocked`: a PR was closed without merge, or a task has no issue. Set status `blocked`, label a closed task `status:blocked`, report, stop.
    - `start`: go to step 3 for the listed tasks.
    - `wait`: go to step 4.
    - `integrate`: only the integration task is left; go to step 5 for it.
    - `finish`: go to step 5, item 2.
-3. Update the state's wave and per-task statuses from the output. Label every `done` task whose state did not say `done` before `status:done` and close its sub-issue (see "Task labels").
+3. Update the state's wave and per-task statuses from the output. Label every `done` task whose state did not say `done` before `status:done` and close its sub-issue (see "Task labels"), then run `<project root>/.claude/scripts/cleanup-feature.sh <feature-name> --task <task-id>`, which removes its worktree and local branch once merged; report any `KEPT` line.
 
 ## 3. Wave start
 
@@ -59,7 +60,7 @@ The integration task ("no commit and no task PR if nothing to change") is never 
 
 When every task of the wave has an OPEN PR: set status `waiting_review`, show the PR links, and tell the user to review and merge them on GitHub.
 
-Then watch them. Call `CronCreate` for every 10 minutes with this plain-text prompt (never a skill call, because a scheduled run cannot invoke a user-only skill): "Call github-ops get-pr-state for <the wave's branches>; the states last seen are <the states now>. For each PR that is newly MERGED, call github-ops swap-label on its task's issue <issue numbers per branch> from status:in-review to status:done, then github-ops close-issue on that same issue. If every PR is MERGED, call CronDelete <id>, set state status to in_progress and loop_id to null, say in one line that wave <n> is merged, then read <project root>/.claude/skills/build-feature/SKILL.md and carry it out for <feature-name> from step 1, as if the user had run it: start the next wave, or finish. If any PR is CLOSED without merge, swap its task's label from status:in-review to status:blocked, call CronDelete <id>, set state status to blocked and tell the user which one. For each PR still OPEN, call github-ops get-pr-feedback with its number and the ids in state tasks.<task>.handled_feedback; if it returns new feedback, read <project root>/.claude/skills/build-feature/SKILL.md and carry out step 4b for that task. Reply with nothing only if no state changed and no feedback was handled." Save the cron id in `state.loop_id`. Say that the watch only runs while this session is open and idle and lasts at most 7 days.
+Then watch them. Call `CronCreate` for every 10 minutes with this plain-text prompt (never a skill call, because a scheduled run cannot invoke a user-only skill): "Call github-ops get-pr-state for <the wave's branches>; the states last seen are <the states now>. For each PR that is newly MERGED, call github-ops swap-label on its task's issue <issue numbers per branch> from status:in-review to status:done, then github-ops close-issue on that same issue, then run <project root>/.claude/scripts/cleanup-feature.sh <feature-name> --task <its task id> and report any KEPT line. If every PR is MERGED, call CronDelete <id>, set state status to in_progress and loop_id to null, say in one line that wave <n> is merged, then read <project root>/.claude/skills/build-feature/SKILL.md and carry it out for <feature-name> from step 1, as if the user had run it: start the next wave, or finish. If any PR is CLOSED without merge, swap its task's label from status:in-review to status:blocked, call CronDelete <id>, set state status to blocked and tell the user which one. For each PR still OPEN, call github-ops get-pr-feedback with its number and the ids in state tasks.<task>.handled_feedback; if it returns new feedback, read <project root>/.claude/skills/build-feature/SKILL.md and carry out step 4b for that task. Reply with nothing only if no state changed and no feedback was handled." Save the cron id in `state.loop_id`. Say that the watch only runs while this session is open and idle and lasts at most 7 days.
 
 So the build moves on by itself: merging a wave's PRs starts the next wave, and the last wave's merge leads to step 5. The user is only needed at the decision points: reviewing and merging each wave's PRs, the final PR to `<base>`, and any `blocked` stop. A rerun of `/build-feature <feature-name>` still works at any time.
 
@@ -87,7 +88,7 @@ Reached with `ACTION=integrate` (start at item 1) or `ACTION=finish` (start at i
 
 1. **Integration check**, for the task listed in `TASKS=`. Label it `status:in-progress` first. In a worktree of the integration branch (`git worktree add <repo root>/.claude/worktrees/<name with - for /> <name>`, then the `commands.install` commands in its project folder), run the `commands.test`, `commands.lint`, `commands.build` and `commands.format_check` commands once. If anything fails, label the task `status:blocked`, set status `blocked`, report the output and stop. On success, add `CHECK <task-id> PASS` to the states file, set `tasks.<task-id>.status` to `done`, label it `status:done` and close its sub-issue.
 2. Check `git diff --stat <remote>/<base>...<integration branch>` touches only files from the plan and `plan-fix.md` plus this feature's docs.
-3. `github-ops find-pr <integration branch>`; if a PR exists, reuse it. Otherwise write the body to `<project root>/.claude/workflow/pr-final.md`: the `pr-description` output for `<remote>/<base>...<integration branch>` (base `<base>`, skip its step 4 and title; if the project has no `pr-description` skill, write a short summary of the change instead), then a table of the task PRs (issue, title, PR link; no `T<n>` ids), the acceptance table from plan.md (requirement, task, test), the suite result, and as the last line `Created by workflow; review and merge by a human.`. Then `github-ops create-pr` with head = the integration branch, base = `<base>`, title = `naming.final_pr_title` from `.claude/workflow.json`, with `{feature_name}` = the H1 of intent.md without "Intent: ".
+3. `github-ops find-pr <integration branch>`; if a PR exists, reuse it. Otherwise write the body to `<project root>/.claude/workflow/<feature-name>/pr-final.md`: the `pr-description` output for `<remote>/<base>...<integration branch>` (base `<base>`, skip its step 4 and title; if the project has no `pr-description` skill, write a short summary of the change instead), then a table of the task PRs (issue, title, PR link; no `T<n>` ids), the acceptance table from plan.md (requirement, task, test), the suite result, and as the last line `Created by workflow; review and merge by a human.`. Then `github-ops create-pr` with head = the integration branch, base = `<base>`, title = `naming.final_pr_title` from `.claude/workflow.json`, with `{feature_name}` = the H1 of intent.md without "Intent: ".
 4. `github-ops comment` on the feature issue (found with `find-issue`) listing the task PRs and the final PR, then `swap-label` `phase:tasks-ready` to `phase:build-done`.
 5. State: phase `build`, status `done`, `handed_off` **false** (this is what lets the `Stop` hook start `verify-feature`; only this step ever writes false, and only here are all task PRs merged and the final PR open), `loop_id` null. Remove the worktree of the integration branch. Do not commit, do not start another phase.
 
@@ -106,7 +107,7 @@ Set one with `github-ops swap-label <issue> <previous status label> <new label>`
 
 ## State
 
-`<project root>/.claude/workflow/state.json`, git-ignored, written with `Write`:
+`<project root>/.claude/workflow/<feature-name>/state.json`, git-ignored, written with `Write`:
 
 ```json
 {"feature": "<name>", "phase": "build", "status": "in_progress|waiting_review|blocked|done", "handed_off": true, "wave": 0, "tasks": {"T1": {"status": "todo|resume|waiting|done|closed", "pr": 31, "handled_feedback": [], "fix_rounds": 0}}, "loop_id": null}

@@ -2,7 +2,7 @@
 name: verify-feature
 description: Phase 4 (Verify), started by the Stop hook when build-feature finishes (or run by hand) after every task PR of a feature is merged into the integration branch and the final PR to the base branch exists. Verifies the WHOLE feature on a throwaway worktree (merged with the base branch locally): mechanical checks, feature E2E, an AC table, a whole-feature review, then writes verification.md (local only, posted to the feature issue) and a PASS or FAIL verdict. On FAIL it reports the failure, writes plan-fix.md from the failed items and, after your approval, creates the fix issues and starts the fix build. Run with the feature folder name; add --dry-run to print what each step would do without writing anything. Re-run any time.
 model: opus
-allowed-tools: Read Write Edit Glob Grep Agent AskUserQuestion Bash(git status*) Bash(git log*) Bash(git diff*) Bash(git show *) Bash(git rev-parse *) Bash(git branch*) Bash(git merge-base *) Bash(git ls-remote *) Bash(git worktree *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/verify-worktree.sh *) Bash(*/.claude/scripts/verify-checks.sh *)
+allowed-tools: Read Write Edit Glob Grep Agent AskUserQuestion Bash(git status*) Bash(git log*) Bash(git diff*) Bash(git show *) Bash(git rev-parse *) Bash(git branch*) Bash(git merge-base *) Bash(git ls-remote *) Bash(git worktree *) Bash(*/.claude/scripts/build-position.sh *) Bash(*/.claude/scripts/cleanup-feature.sh *) Bash(*/.claude/scripts/code-head.sh*) Bash(*/.claude/scripts/verify-worktree.sh *) Bash(*/.claude/scripts/verify-checks.sh *)
 ---
 
 # Verify a feature
@@ -14,7 +14,7 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 ## Paths
 
 - Settings: `<project root>/.claude/workflow.json` (`docs_dir`, `branches.base` as `<base>`, `commands`, `lanes`).
-- Project root: the folder that holds `.claude/workflow.json` and `<docs_dir>`. Plan: `<project root>/<docs_dir>/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/state.json`.
+- Project root: the folder that holds `.claude/workflow.json` and `<docs_dir>`. Plan: `<project root>/<docs_dir>/<feature-name>/plan.md`. Scripts: `<project root>/.claude/scripts/`. State: `<project root>/.claude/workflow/<feature-name>/state.json`.
 - Integration branch: the `PR target:` of the plan's tasks (named by `naming.integration_branch`). Feature issue: `github-ops find-issue` on `intent.md`.
 - Evidence (git-ignored, in the MAIN checkout so it survives the worktree): `<project root>/<docs_dir>/<feature-name>/evidence/verify/`. The report is written there as `verification.md` and is never committed; step 8 posts it to the feature issue.
 - Fix tasks: `<project root>/<docs_dir>/<feature-name>/plan-fix.md` (see Failure handling); `plan.md` is never edited here.
@@ -24,7 +24,7 @@ Arguments: `<feature-name> [--dry-run]`. With `--dry-run`, run only the read-onl
 ## 1. Preconditions
 
 1. Read `plan.md` (line 2 must be `Status: approved.`), `intent.md`, `spec.md`.
-2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. The integration task (its branch is marked "only if fixes are needed"; `build-position.sh` prints it with `integration=yes`), when it has no PR, is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
+2. `github-ops get-pr-state` with the `Branch:` of every task. Write the rows to `<project root>/.claude/workflow/<feature-name>/verify-pr-states.tsv` (a different file from build's `pr-states.tsv`) as `<branch> <OPEN|MERGED|CLOSED|NONE> [pr]`. The integration task (its branch is marked "only if fixes are needed"; `build-position.sh` prints it with `integration=yes`), when it has no PR, is covered by this skill's own checks: add `CHECK <id> PASS` for it. (In `--dry-run`, write this file under the scratchpad directory instead.)
 3. Run `build-position.sh <plan> <states file>`. Every task must be `done`. Otherwise stop, list each task that is not (OPEN with its PR number, CLOSED, NONE) and tell the user to merge or finish them. Write no state.
 4. `github-ops find-pr <integration branch>`: the final PR must exist, be OPEN and have base `<base>`. Otherwise stop and say so (run `build-feature` to open it).
 5. Count the `## Fix round ` headings in `plan-fix.md` (`fix_round`; 0 when the file does not exist). If a FAIL would need a third one, step 8 escalates instead.
@@ -74,7 +74,7 @@ Call `github-ops` (Haiku), not in `--dry-run`:
 
 1. `comment` on the feature issue with the whole report: write a copy of `verification.md` to the scratchpad with `<!-- workflow-reply -->` as its first line and its `# Verification:` heading turned into `## Verification report:`, and have `github-ops` post it with `gh issue comment <n> --body-file <copy>`. Keep the comment URL it returns.
 2. `append-pr-section` on the final PR: a `## Verification` section with the verdict, the AC table summary (counts, UNVERIFIED rows), a link to that issue comment for the full report, and the minor findings. The rest of the body stays as it is.
-3. PASS: `swap-label` `phase:build-done` to `phase:verify-done`; state `{"feature": …, "phase": "verify", "status": "done", "handed_off": true}`.
+3. PASS: `swap-label` `phase:build-done` to `phase:verify-done`. Then clear the feature's local data: `<project root>/.claude/scripts/cleanup-feature.sh <feature-name>` removes the remaining task worktrees and merged local branches, the verify and evidence worktrees, `.claude/workflow/<feature-name>/` (the state included, so nothing is left to hand off) and the feature's local `evidence/` and `reviews/`. Everything it removes is already on GitHub (the report comment, the evidence branch, the PR bodies). Report its `KEPT` lines. Not in `--dry-run`.
 4. FAIL: leave the label; state status `failed`, with `fix_round`. Then do "Failure handling".
 
 Finally `verify-worktree.sh remove <feature-name>`. Report in a few lines: verdict, failed checks, UNVERIFIED ACs, blocker and major findings, the PR link, what the user does next.
@@ -122,7 +122,7 @@ Verify never edits code on the integration branch. On FAIL the report is already
 
 ## State
 
-Same file and shape as the other phases: `{"feature", "phase": "verify", "status": "in_progress|done|failed|blocked", "handed_off": true, "fix_round": n}`. `handed_off` is `true` in every verify state, so a verify result never triggers a hook run by itself. The one exception is on purpose: after you approve `plan-fix.md`, "Failure handling" step 5 writes `phase: tasks, status: done, handed_off: false` so the hook starts the fix build. `next-phase.sh` starts this skill from `build / done / handed_off:false`, which `build-feature` step 5 writes only after every task PR is merged and the final PR exists; the preconditions of step 1 still re-check both. After the fix wave is merged, `build-feature` finishing re-triggers verify (a new round, 2 at most).
+Same file and shape as the other phases (`.claude/workflow/<feature-name>/state.json`; a PASS removes it with the rest of the feature's local data): `{"feature", "phase": "verify", "status": "in_progress|failed|blocked", "handed_off": true, "fix_round": n}`. `handed_off` is `true` in every verify state, so a verify result never triggers a hook run by itself. The one exception is on purpose: after you approve `plan-fix.md`, "Failure handling" step 5 writes `phase: tasks, status: done, handed_off: false` so the hook starts the fix build. `next-phase.sh` starts this skill from `build / done / handed_off:false`, which `build-feature` step 5 writes only after every task PR is merged and the final PR exists; the preconditions of step 1 still re-check both. After the fix wave is merged, `build-feature` finishing re-triggers verify (a new round, 2 at most).
 
 ## Rules
 

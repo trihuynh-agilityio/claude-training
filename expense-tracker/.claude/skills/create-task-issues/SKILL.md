@@ -56,7 +56,7 @@ Tell the user which phase label the feature issue has now (from step 2). Then ca
 
 ## 6. Hand off
 
-Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `build-feature` (the plan was approved in step 1, so no further command is needed):
+Write `.claude/workflow/<feature-name>/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `build-feature` (the plan was approved in step 1, so no further command is needed):
 
 ```json
 {"feature": "<feature-name>", "phase": "tasks", "status": "done", "handed_off": false}

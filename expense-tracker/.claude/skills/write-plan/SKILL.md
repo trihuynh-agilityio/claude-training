@@ -133,7 +133,7 @@ If the task has no UI change, leave the UI check out.
 
 Tell the user the path of the file, the number of tasks and waves, and which issues or risks need a decision first, with the owner of each. Do not commit; leave that to the user's branch workflow.
 
-Then write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `create-task-issues`, which asks the user to approve the plan before it creates anything:
+Then write `.claude/workflow/<feature-name>/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `create-task-issues`, which asks the user to approve the plan before it creates anything:
 
 ```json
 {"feature": "<feature-name>", "phase": "write-plan", "status": "done", "handed_off": false}

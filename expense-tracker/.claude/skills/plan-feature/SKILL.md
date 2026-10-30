@@ -16,6 +16,8 @@ Invoke the `grill-me` skill (the `grilling` skill of the `mattpocock-skills` plu
 
 Invoke `write-intent` with this override: write to `<docs_dir>/<feature-name>/intent.md` (kebab-case name, 2–5 words, no date prefix), not to `intent/`. Everything else in that skill applies. Team and author follow its rules.
 
+Before writing, check `.claude/workflow/<feature-name>/state.json`. If it exists, that feature is already in the workflow: show its phase and status and ask with `AskUserQuestion` whether to start it over (the state is replaced) or stop. Other features' states are never touched; several features can be planned while another one is in review.
+
 ## 3. Get approval
 
 Show the user the path and the open questions. Ask with `AskUserQuestion`: approve, or change something. On changes, edit the intent and ask again. Do not continue without a clear approval, and set `Status: approved.` on line 2 of the intent once it is given.
@@ -39,7 +41,7 @@ It never pushes: `build-feature` pushes the integration branch once, before the 
 
 ## 6. Finish
 
-Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed) with exactly this content, so the `Stop` hook starts Phase 2:
+Write `.claude/workflow/<feature-name>/state.json` (create the folder with `mkdir -p` if needed) with exactly this content, so the `Stop` hook starts Phase 2:
 
 ```json
 {"feature": "<feature-name>", "phase": "plan", "status": "done", "handed_off": false}

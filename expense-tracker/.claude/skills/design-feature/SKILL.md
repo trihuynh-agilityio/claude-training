@@ -50,7 +50,7 @@ Call the `github-ops` agent once per operation:
 
 ## 8. Finish
 
-Write `.claude/workflow/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `write-plan`:
+Write `.claude/workflow/<feature-name>/state.json` (create the folder with `mkdir -p` if needed; use `Write`) with exactly this content, so the `Stop` hook starts `write-plan`:
 
 ```json
 {"feature": "<feature-name>", "phase": "design", "status": "done", "handed_off": false}

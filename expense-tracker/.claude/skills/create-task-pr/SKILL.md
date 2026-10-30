@@ -44,7 +44,7 @@ Push only the task branch: `git push -u <remote> <Branch>`, run from the worktre
    - The review summary from `<docs_dir>/<feature-name>/reviews/<task-id>.md`: the number of rounds, the final verdict, and the minor findings still open.
    - Only if the task has a `UI check:`: the content of its local `result.md` (its path and file list lines left out), then a `### Screenshots` section so the reviewer sees the UI without running it. Get it from `<project root>/.claude/scripts/publish-evidence.sh <task-id> <docs_dir>/<feature-name>/evidence/<task-id> <PR target>`, run from the worktree: it pushes the screenshots to the never-merged branch `<PR target>-evidence` and prints one Markdown image per screenshot, linked by commit so the images never change. Paste its output as is. List the other local evidence files (logs, traces) by name only.
    - As the very last line: `Created by workflow; review and merge by a human.`
-3. Write the whole body to `<project root>/.claude/workflow/pr-<task-id>.md`.
+3. Write the whole body to `<project root>/.claude/workflow/<feature-name>/pr-<task-id>.md`.
 
 ## 6. Create the PR
 
