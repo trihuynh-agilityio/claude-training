@@ -18,6 +18,7 @@ type Props = {
   showSkeleton: boolean
   onAdd: () => void
   onEdit: (expense: Expense) => void
+  onDuplicate: (expense: Expense) => void
   onDelete: (expense: Expense) => void
   onRetry: () => void
   onExported: (message: string) => void
@@ -29,6 +30,7 @@ export function TransactionsPage({
   showSkeleton,
   onAdd,
   onEdit,
+  onDuplicate,
   onDelete,
   onRetry,
   onExported,
@@ -95,6 +97,7 @@ export function TransactionsPage({
                     key={expense.id}
                     expense={expense}
                     onEdit={onEdit}
+                    onDuplicate={onDuplicate}
                     onDelete={onDelete}
                   />
                 ))}

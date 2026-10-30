@@ -2,15 +2,16 @@ import { getCategory } from '../lib/categories'
 import { formatVND } from '../lib/money'
 import type { Expense } from '../types'
 import { CategoryTile } from './CategoryTile'
-import { PencilIcon, RepeatIcon, TrashIcon } from './icons'
+import { CopyIcon, PencilIcon, RepeatIcon, TrashIcon } from './icons'
 
 type Props = {
   expense: Expense
   onEdit: (expense: Expense) => void
+  onDuplicate: (expense: Expense) => void
   onDelete: (expense: Expense) => void
 }
 
-export function ExpenseRow({ expense, onEdit, onDelete }: Props) {
+export function ExpenseRow({ expense, onEdit, onDuplicate, onDelete }: Props) {
   const name = expense.note ?? `expense of ${formatVND(expense.amount)}`
 
   return (
@@ -39,6 +40,14 @@ export function ExpenseRow({ expense, onEdit, onDelete }: Props) {
           onClick={() => onEdit(expense)}
         >
           <PencilIcon />
+        </button>
+        <button
+          className="icon-btn"
+          type="button"
+          aria-label={`Duplicate ${name}`}
+          onClick={() => onDuplicate(expense)}
+        >
+          <CopyIcon />
         </button>
         <button
           className="icon-btn danger"

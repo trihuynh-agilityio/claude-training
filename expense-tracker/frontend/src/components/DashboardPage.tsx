@@ -28,6 +28,7 @@ type Props = {
   version: number
   onAdd: () => void
   onEdit: (expense: Expense) => void
+  onDuplicate: (expense: Expense) => void
   onDelete: (expense: Expense) => void
   onViewAll: () => void
   onOpenBudget: () => void
@@ -40,6 +41,7 @@ export function DashboardPage({
   version,
   onAdd,
   onEdit,
+  onDuplicate,
   onDelete,
   onViewAll,
   onOpenBudget,
@@ -166,6 +168,7 @@ export function DashboardPage({
                       key={expense.id}
                       expense={expense}
                       onEdit={onEdit}
+                      onDuplicate={onDuplicate}
                       onDelete={onDelete}
                     />
                   ))}

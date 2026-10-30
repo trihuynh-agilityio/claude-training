@@ -7,6 +7,7 @@ import { BudgetPage } from './components/BudgetPage'
 import { DashboardPage } from './components/DashboardPage'
 import { ConfirmDeleteDialog } from './components/ConfirmDeleteDialog'
 import { ExpenseFormDialog } from './components/ExpenseFormDialog'
+import { duplicateDraft, type DuplicateDraft } from './lib/duplicate'
 import { RecurringPage } from './components/RecurringPage'
 import { Toast } from './components/Toast'
 import { TransactionsPage, type LoadStatus } from './components/TransactionsPage'
@@ -20,7 +21,8 @@ const SKELETON_DELAY_MS = 300
 /** A month summary lookup around a save gives up after this long. */
 const LOOKUP_TIMEOUT_MS = 2000
 
-type FormState = { mode: 'add' } | { mode: 'edit'; expense: Expense }
+type FormState =
+  { mode: 'add'; prefill?: DuplicateDraft; sourceId?: number } | { mode: 'edit'; expense: Expense }
 
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -142,6 +144,8 @@ function App() {
 
   const clearToast = useCallback(() => setToast(null), [])
   const openAdd = () => setForm({ mode: 'add' })
+  const openDuplicate = (expense: Expense) =>
+    setForm({ mode: 'add', prefill: duplicateDraft(expense), sourceId: expense.id })
 
   return (
     <AppShell view={view} onNavigate={setView} onAdd={openAdd}>
@@ -152,6 +156,7 @@ function App() {
           version={version}
           onAdd={openAdd}
           onEdit={(expense) => setForm({ mode: 'edit', expense })}
+          onDuplicate={openDuplicate}
           onDelete={askDelete}
           onViewAll={() => setView('transactions')}
           onOpenBudget={() => setView('budget')}
@@ -174,6 +179,7 @@ function App() {
           showSkeleton={showSkeleton}
           onAdd={openAdd}
           onEdit={(expense) => setForm({ mode: 'edit', expense })}
+          onDuplicate={openDuplicate}
           onDelete={askDelete}
           onRetry={retry}
           onExported={setToast}
@@ -182,8 +188,15 @@ function App() {
 
       {form && (
         <ExpenseFormDialog
-          key={form.mode === 'edit' ? form.expense.id : 'new'}
+          key={
+            form.mode === 'edit'
+              ? form.expense.id
+              : form.sourceId != null
+                ? `dup-${form.sourceId}`
+                : 'new'
+          }
           expense={form.mode === 'edit' ? form.expense : undefined}
+          prefill={form.mode === 'add' ? form.prefill : undefined}
           onSave={save}
           onClose={() => setForm(null)}
           onRequestDelete={askDelete}

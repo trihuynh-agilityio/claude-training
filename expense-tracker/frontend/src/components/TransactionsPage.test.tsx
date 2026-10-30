@@ -29,6 +29,7 @@ const EXPENSES = [expense(3, 'Grab to office'), expense(2, 'Phở bò'), expense
 const handlers = {
   onAdd: vi.fn(),
   onEdit: vi.fn(),
+  onDuplicate: vi.fn(),
   onDelete: vi.fn(),
   onRetry: vi.fn(),
   onExported: vi.fn(),
@@ -117,5 +118,13 @@ describe('TransactionsPage export', () => {
     expect(text).toContain('Old trip')
     expect(text).not.toContain('Grab')
     expect(handlers.onExported).toHaveBeenLastCalledWith('Exported 1 expense')
+  })
+})
+
+describe('TransactionsPage duplicate', () => {
+  it('passes the clicked row to onDuplicate', async () => {
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Duplicate Phở bò' }))
+    expect(handlers.onDuplicate).toHaveBeenCalledWith(EXPENSES[1])
   })
 })
