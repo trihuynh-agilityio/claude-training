@@ -8,7 +8,8 @@ type Props = {
 
 export function FilterCard({ filters, onChange }: Props) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
-  const rangeError = filters.range === 'custom' ? validateRange(filters.from, filters.to) : undefined
+  const rangeError =
+    filters.range === 'custom' ? validateRange(filters.from, filters.to) : undefined
 
   return (
     <section className="card filter-card" aria-label="Filters">

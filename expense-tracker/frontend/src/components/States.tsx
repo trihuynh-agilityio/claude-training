@@ -7,7 +7,9 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
         <WalletIcon />
       </span>
       <h2 className="state-title">Start tracking your spending</h2>
-      <p className="state-text">Add your first expense to see where your money goes. Expenses are grouped by day.</p>
+      <p className="state-text">
+        Add your first expense to see where your money goes. Expenses are grouped by day.
+      </p>
       <button className="btn btn-primary" type="button" onClick={onAdd}>
         <PlusIcon />
         Add first expense
@@ -23,7 +25,9 @@ export function NoMatchState({ onClear }: { onClear: () => void }) {
         <WalletIcon />
       </span>
       <h2 className="state-title">No expenses match</h2>
-      <p className="state-text">Try a different search or date range, or clear the filters to see everything.</p>
+      <p className="state-text">
+        Try a different search or date range, or clear the filters to see everything.
+      </p>
       <button className="btn btn-secondary" type="button" onClick={onClear}>
         Clear filters
       </button>
@@ -38,7 +42,9 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
         <WarningIcon />
       </span>
       <h2 className="state-title">Couldn’t load your expenses</h2>
-      <p className="state-text">Check that the API is running and try again. Nothing you saved was lost.</p>
+      <p className="state-text">
+        Check that the API is running and try again. Nothing you saved was lost.
+      </p>
       <button className="btn btn-secondary" type="button" onClick={onRetry}>
         Try again
       </button>

@@ -1,5 +1,6 @@
 /** The fixed category ids; must match `CategoryId` in backend/app/schemas.py. */
-export type CategoryId = 'food' | 'transport' | 'bills' | 'shopping' | 'leisure' | 'health' | 'education' | 'other'
+export type CategoryId =
+  'food' | 'transport' | 'bills' | 'shopping' | 'leisure' | 'health' | 'education' | 'other'
 
 export type Category = { id: CategoryId; name: string; letter: string; color: string }
 

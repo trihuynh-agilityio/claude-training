@@ -52,7 +52,9 @@ describe('ExpenseRow duplicate button', () => {
   it('is named after the amount when there is no note', () => {
     renderRow({ note: null })
 
-    expect(screen.getByRole('button', { name: `Duplicate expense of ${formatVND(expense.amount)}` })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: `Duplicate expense of ${formatVND(expense.amount)}` }),
+    ).toBeInTheDocument()
   })
 
   it('calls onDuplicate with the expense and is not a danger button', () => {
