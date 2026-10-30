@@ -47,9 +47,16 @@ Push only the task branch: `git push -u github <Branch>`, run from the worktree.
 
 ## 6. Create the PR
 
-Call the `github-ops` agent with `create-pr`: head = the task's `Branch:`, base = its `PR target:`, title = its `PR title:` field exactly (`T<n>: <task title> (#<sub-issue-number>)`), body file = the path above. Never create it by any other route.
+Call the `github-ops` agent once, with one batch (step 3 found no PR, so the PR is new). Never create it by any other route.
 
-For a new PR, call `github-ops` `swap-label` on the task's sub-issue (`Issue:`) from `status:in-progress` to `status:in-review`, then `github-ops` `comment` on the PR number with exactly `@claude review`, so the Claude bot reviews it. Its findings come back through `get-pr-feedback` (author `claude[bot]`) like any review. An existing PR gets neither.
+```
+batch:
+1. create-pr <Branch> <PR target> "<PR title>" <project root>/.claude/workflow/pr-<task-id>.md
+2. swap-label <Issue number> status:in-progress status:in-review if $1.new
+3. comment $1.number "@claude review" if $1.new
+```
+
+The title is the `PR title:` field exactly (`T<n>: <task title> (#<sub-issue-number>)`). Line 3 has the Claude bot review the PR; its findings come back through `get-pr-feedback` (author `claude[bot]`) like any review. An existing PR gets neither line.
 
 ## 7. Report
 
