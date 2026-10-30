@@ -28,8 +28,9 @@ Call the `github-ops` agent with `find-issue docs/features/<feature-name>/intent
 For each task `## T<n>: <title>` in plan order, call `github-ops` with `create-sub-issue`:
 
 - parent: the feature issue number,
-- title: `T<n>: <title>` (the heading text without the `[ ]`),
-- task fields: its Goal, Covers, wave, Lane, Depends on, and the plan path `docs/features/<feature-name>/plan.md` (`github-ops` builds the body from them in the shared issue body format),
+- title: the Task issue title pattern from the `## Naming` table in `CLAUDE.md` (default: the heading text after `T<n>: `, without the `[ ]`; no task id),
+- task id: `T<n>`, which `github-ops` uses only as the plan reference and the duplicate key, never in the title,
+- task fields: its Goal, Covers, wave, Lane, Depends on (as the issue numbers of those tasks, created earlier in this loop; `none` if empty), and the plan path `docs/features/<feature-name>/plan.md` (`github-ops` builds the body from them in the shared issue body format),
 - labels: `task`.
 
 Do not ask questions here. A task whose sub-issue already exists is returned as `already existed`; keep its number and create nothing. If one call fails, keep going with the others and report the failures at the end.
@@ -39,7 +40,7 @@ Do not ask questions here. A task whose sub-issue already exists is returned as 
 For each task that now has a number, `Edit` plan.md:
 
 - `Issue: pending` becomes `Issue: #<n>`.
-- `Branch:` becomes `feat/<n>-<slug>` using the task's `Slug`. Keep any trailing note such as `(only if fixes are needed)`.
+- `Branch:` has `<sub-issue>` replaced by `<n>` (the Task branch pattern from `## Naming`, default `feat/<n>-<slug>`). Keep the backticks and any trailing note such as `(only if fixes are needed)`.
 - `PR title:` has `<sub-issue>` replaced by `<n>`.
 
 This is the only edit allowed on an approved plan. Change nothing else in it.

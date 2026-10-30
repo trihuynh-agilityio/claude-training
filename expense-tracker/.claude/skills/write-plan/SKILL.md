@@ -88,9 +88,9 @@ Every task has, in this order:
 - **Done when**: concrete, checkable criteria.
 - **Slug**: `<task-slug>`: lowercase kebab-case, ASCII, 2 to 5 words, unique within the feature (different from every other task slug and from the feature slug).
 - **Issue**: `pending`. Sub-issues are created after the plan is approved, so the number does not exist yet. Never guess or reserve one.
-- **Branch**: `feat/<sub-issue>-<task-slug>`, written exactly like that, with `<sub-issue>` left as the placeholder until the sub-issue exists.
-- **PR target**: the integration branch `feat/<feature-issue-number>-<feature-slug>` (the real number).
-- **PR title**: `T<n>: <title> (#<sub-issue>)`, with the same placeholder.
+- **Branch**: the Task branch pattern from the `## Naming` table in `CLAUDE.md`, in backticks, with `<sub-issue>` written in place of the task issue number until the sub-issue exists (default `` `feat/<sub-issue>-<task-slug>` ``).
+- **PR target**: the Integration branch pattern from `## Naming`, with the real feature issue number (default `feat/<feature-issue-number>-<feature-slug>`).
+- **PR title**: the Task PR title pattern from `## Naming`, with the same `<sub-issue>` placeholder (default `<title> (#<sub-issue>)`). The `T<n>` id never goes into it.
 - **UI check**: only for tasks that change user-facing UI (see below).
 
 ### Testing

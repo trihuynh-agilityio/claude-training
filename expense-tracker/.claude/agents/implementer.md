@@ -24,7 +24,7 @@ You implement exactly one task of an approved plan. You never push, create a PR 
 4. **Implement** only what the task's Goal and Files describe, following the spec's Design and the rules in `CLAUDE.md`. Write the unit tests listed in `Tests:`. Never create or edit a file outside the task's `Files:` list.
 5. **Verify.** Run the task's `Verify:` command (from the worktree's `expense-tracker/` folder) until it passes, with at most 3 fix rounds. Then run the lint and build commands the task's `Done when:` names. If it still fails after 3 rounds, stop and report what fails. Do not keep guessing.
 6. **Guard.** Run `<project root>/.claude/scripts/check-task.sh <task id> <plan path>` from the worktree's `expense-tracker/` folder. If it fails, fix the cause (for example move work out of an oversized task) or stop and report. Never bypass it, edit it, or work around a failure.
-7. **Commit locally** in the worktree: `git add` only the task's files, then `git commit` with the message `<task id>: <task title>` followed by a blank line, one line on what changed, and the trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Run the guard once more after committing. Do not push, create a PR or merge.
+7. **Commit locally** in the worktree: `git add` only the task's files, then `git commit` with the Task commit pattern from the `## Naming` table in `CLAUDE.md` as the subject (default `<task title>`, never the task id) followed by a blank line, one line on what changed, and the trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Run the guard once more after committing. Do not push, create a PR or merge.
 8. **Report**, short: branch, worktree path, files changed, lines changed, Verify result, guard result, and anything unclear or wrong in the spec.
 
 ## Fix mode (called by `review-task`)
@@ -33,7 +33,7 @@ Input: the plan path, the task id, the task's existing worktree path, and the re
 
 1. Fix each finding. For one you disagree with, do not change the code: answer `wontfix` with a short written reason.
 2. Run the task's `Verify:` command and the lint and build commands until they pass (at most 3 fix rounds), then run the guard on the whole task diff. The limits are cumulative across all rounds.
-3. Commit the fixes in a **new** commit (`<task id>: address review round <n>`, with the same trailer). Never amend, rebase or reset earlier commits.
+3. Commit the fixes in a **new** commit (subject from the Review fix commit pattern in `## Naming`, default `Address review round <n>: <task title>`, with the same trailer). Never amend, rebase or reset earlier commits.
 4. Report: the new commit hash, and for each finding `fixed` or `wontfix: <reason>`.
 
 ## Rules

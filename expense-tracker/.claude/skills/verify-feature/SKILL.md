@@ -106,16 +106,16 @@ Verify never edits code on the integration branch. On FAIL the report is already
    - **Goal** / **Files** / **Size** / **Covers** / **Depends on** / **Tests** / **Verify** / **Done when**: as in write-plan
    - **Slug**: `<slug>`
    - **Issue**: pending
-   - **Branch**: `pending`
+   - **Branch**: the Task branch pattern from `## Naming` in `CLAUDE.md`, in backticks, with `<sub-issue>` as the placeholder (default `` `feat/<sub-issue>-<slug>` ``)
    - **PR target**: `<integration branch>`
-   - **PR title**: `T<id>: <title> (#<sub-issue>)`
+   - **PR title**: the Task PR title pattern from `## Naming`, with the same placeholder (default `<title> (#<sub-issue>)`)
    ```
 
-   "Last wave" and "last task number" count both `plan.md` and the earlier rounds of `plan-fix.md`. Headings use `## Wave <n>` and `## T<n>:` because `build-position.sh` only reads those. Put the F label in the **Goal** line (`Fix F<n>: …`).
+   "Last wave" and "last task number" count both `plan.md` and the earlier rounds of `plan-fix.md`. Headings use `## Wave <n>` and `## T<n>:` because `build-position.sh` only reads those; the `T<n>` id stays in the plan and never reaches an issue, PR or commit title. Start the **Goal** line with `Fix: `.
 3. **Ask.** Tell the user the path and show a table (task, what it fixes, files, size). `AskUserQuestion`: approve, change (the user edits or says what; then update the draft and ask again), or "I'll handle it myself". On "I'll handle it myself", delete the draft round you wrote and stop. Nothing is created before the approval.
 4. **After approval.** Remove ` (draft)` from the round heading. Then do what `create-task-issues` does for these tasks:
-   1. `github-ops create-sub-issue` per task (parent: the feature issue, title `F<n>: <title>`, label `task`, and the task fields: goal, covers, wave, lane, depends on and the path of `plan-fix.md`, from which `github-ops` builds the body in the shared issue body format). A task whose issue already exists is kept.
-   2. Write the numbers back into `plan-fix.md`: `Issue: #<n>`, `Branch:` with the name in backticks as in `plan.md` (`` `feat/<n>-<slug>` ``; `build-position.sh` only reads a backticked branch), and `<sub-issue>` in `PR title` replaced by `<n>`. This is the only edit after approval.
+   1. `github-ops create-sub-issue` per task (parent: the feature issue, title from the Fix issue title pattern in `## Naming` (default `Fix: <title>`), task id `T<n>`, label `task`, and the task fields: goal, covers, wave, lane, depends on (as issue numbers) and the path of `plan-fix.md`, from which `github-ops` builds the body in the shared issue body format). A task whose issue already exists is kept.
+   2. Write the numbers back into `plan-fix.md`: `Issue: #<n>`, `Branch:` with `<sub-issue>` replaced by `<n>`, kept in backticks (`build-position.sh` only reads a backticked branch), and `<sub-issue>` in `PR title` replaced by `<n>`. This is the only edit after approval.
    3. `github-ops comment` on the feature issue: the fix tasks (number, title, what they fix) and the round.
 5. **Start the fix build.** Write the state `{"feature": "<feature-name>", "phase": "tasks", "status": "done", "handed_off": false}`. The `Stop` hook then starts `build-feature`, which runs the fix wave exactly like any wave: one task per lane (implementer, `Verify`, `check-task.sh`), `review-task` with fixes, the UI check when the task has one, `create-task-pr`, then waits for you to merge the fix PRs. When the fix wave is merged and the final PR is up to date, `build-feature` finishes and the hook starts `verify-feature` again. Tell the user in two lines what was created and that the fix build is starting.
 
